@@ -1,0 +1,54 @@
+[
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ic_launcher_file.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\drawable\\ic_launcher_file.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ad_banner.png.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\drawable\\ad_banner.png"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\layout_activity_favorites.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\layout\\activity_favorites.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ic_launcher_calculator.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\drawable\\ic_launcher_calculator.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\layout_item_favorite.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\layout\\item_favorite.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ic_launcher.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\drawable\\ic_launcher.xml"
+    },
+    {
+        "merged": "com.example.javbrowser.app-merged_res-34:/layout_activity_settings.xml.flat",
+        "source": "com.example.javbrowser.app-main-36:/layout/activity_settings.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\layout_activity_settings.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\layout\\activity_settings.xml"
+    },
+    {
+        "merged": "com.example.javbrowser.app-merged_res-34:/layout_activity_lock.xml.flat",
+        "source": "com.example.javbrowser.app-main-36:/layout/activity_lock.xml"
+    },
+    {
+        "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ic_launcher_notes.xml.flat",
+        "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\drawable\\ic_launcher_notes.xml"
+    }
+]

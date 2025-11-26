@@ -1,0 +1,6 @@
+com.example.javbrowser.test.app-jetified-core-1.5.0-0 C:\Users\lin kao\.gradle\caches\transforms-3\01965fbaa2903a46d35a185889fc244d\transformed\jetified-core-1.5.0\res
+com.example.javbrowser.test.app-jetified-annotation-experimental-1.3.0-1 C:\Users\lin kao\.gradle\caches\transforms-3\f7556a78fadce4b97c6190a92e01d6e7\transformed\jetified-annotation-experimental-1.3.0\res
+com.example.javbrowser.test.app-androidTest-2 D:\00000ABOT\jav\app\build\generated\res\resValues\androidTest\debug
+com.example.javbrowser.test.app-mergeDebugAndroidTestResources-3 D:\00000ABOT\jav\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.example.javbrowser.test.app-mergeDebugAndroidTestResources-4 D:\00000ABOT\jav\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.example.javbrowser.test.app-merged_res-5 D:\00000ABOT\jav\app\build\intermediates\merged_res\debugAndroidTest

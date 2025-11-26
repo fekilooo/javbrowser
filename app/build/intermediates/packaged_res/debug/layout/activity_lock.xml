@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:padding="24dp">
+
+    <ImageView
+        android:id="@+id/iv_lock_icon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="64dp"
+        android:src="@drawable/ic_launcher"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="#BB86FC" />
+
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="App Locked"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_lock_icon" />
+
+    <TextView
+        android:id="@+id/tv_pin_display"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:letterSpacing="0.5"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        tools:text="••••" />
+
+    <GridLayout
+        android:id="@+id/grid_pin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:columnCount="3"
+        android:rowCount="4"
+        app:layout_constraintBottom_toTopOf="@+id/btn_use_biometric"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_pin_display"
+        app:layout_constraintVertical_bias="0.5">
+
+        <!-- Row 1 -->
+        <Button style="@style/PinButtonStyle" android:text="1" android:tag="1"/>
+        <Button style="@style/PinButtonStyle" android:text="2" android:tag="2"/>
+        <Button style="@style/PinButtonStyle" android:text="3" android:tag="3"/>
+
+        <!-- Row 2 -->
+        <Button style="@style/PinButtonStyle" android:text="4" android:tag="4"/>
+        <Button style="@style/PinButtonStyle" android:text="5" android:tag="5"/>
+        <Button style="@style/PinButtonStyle" android:text="6" android:tag="6"/>
+
+        <!-- Row 3 -->
+        <Button style="@style/PinButtonStyle" android:text="7" android:tag="7"/>
+        <Button style="@style/PinButtonStyle" android:text="8" android:tag="8"/>
+        <Button style="@style/PinButtonStyle" android:text="9" android:tag="9"/>
+
+        <!-- Row 4 -->
+        <ImageButton
+            android:id="@+id/btn_delete"
+            style="@style/PinButtonStyle"
+            android:backgroundTint="#00000000"
+            android:src="@android:drawable/ic_input_delete"
+            app:tint="#FFFFFF" />
+        
+        <Button style="@style/PinButtonStyle" android:text="0" android:tag="0"/>
+        
+        <ImageButton
+            android:id="@+id/btn_enter"
+            style="@style/PinButtonStyle"
+            android:backgroundTint="#00000000"
+            android:src="@android:drawable/ic_media_play"
+            app:tint="#BB86FC" />
+
+    </GridLayout>
+
+    <Button
+        android:id="@+id/btn_use_biometric"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="#3700B3"
+        android:text="Use Biometric"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

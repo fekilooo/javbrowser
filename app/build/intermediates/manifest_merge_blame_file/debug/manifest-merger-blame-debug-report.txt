@@ -1,0 +1,243 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.javbrowser"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:5:5-67
+11-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:5:22-64
+12    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+12-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:6:5-83
+12-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:6:22-80
+13    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+13-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:7:5-72
+13-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:7:22-69
+14
+15    <!-- suppress DeprecatedClassUsageInspection -->
+16    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+16-->[androidx.biometric:biometric:1.1.0] C:\Users\lin kao\.gradle\caches\transforms-3\ca3ef3fb257fc42589b8fa369921e292\transformed\biometric-1.1.0\AndroidManifest.xml:27:5-74
+16-->[androidx.biometric:biometric:1.1.0] C:\Users\lin kao\.gradle\caches\transforms-3\ca3ef3fb257fc42589b8fa369921e292\transformed\biometric-1.1.0\AndroidManifest.xml:27:22-71
+17
+18    <permission
+18-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+19        android:name="com.example.javbrowser.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+19-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+20        android:protectionLevel="signature" />
+20-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+21
+22    <uses-permission android:name="com.example.javbrowser.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+22-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+22-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+23
+24    <application
+24-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:9:5-78:19
+25        android:allowBackup="true"
+25-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:10:9-35
+26        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+26-->[androidx.core:core:1.12.0] C:\Users\lin kao\.gradle\caches\transforms-3\2ccd268e0ca2e1cd10ec650ac8067a3e\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+27        android:dataExtractionRules="@xml/data_extraction_rules"
+27-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:11:9-65
+28        android:debuggable="true"
+29        android:extractNativeLibs="false"
+30        android:fullBackupContent="@xml/backup_rules"
+30-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:12:9-54
+31        android:icon="@drawable/ic_launcher"
+31-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:13:9-45
+32        android:label="@string/app_name"
+32-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:14:9-41
+33        android:roundIcon="@drawable/ic_launcher"
+33-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:15:9-50
+34        android:supportsRtl="true"
+34-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:16:9-35
+35        android:theme="@style/Theme.JAVBrowser" >
+35-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:17:9-48
+36        <activity
+36-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:19:9-28:20
+37            android:name="com.example.javbrowser.MainActivity"
+37-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:20:13-41
+38            android:configChanges="orientation|screenSize|keyboardHidden"
+38-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:21:13-74
+39            android:exported="true"
+39-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:23:13-36
+40            android:windowSoftInputMode="adjustResize" >
+40-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:22:13-55
+41            <intent-filter>
+41-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:24:13-27:29
+42                <action android:name="android.intent.action.MAIN" />
+42-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:17-69
+42-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:25-66
+43
+44                <category android:name="android.intent.category.LAUNCHER" />
+44-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:17-77
+44-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:27-74
+45            </intent-filter>
+46        </activity>
+47
+48        <activity-alias
+48-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:57:9-68:26
+49            android:name="com.example.javbrowser.MainActivityFile"
+49-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:58:13-45
+50            android:enabled="false"
+50-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:62:13-36
+51            android:exported="true"
+51-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:63:13-36
+52            android:icon="@drawable/ic_launcher_file"
+52-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:60:13-54
+53            android:label="File Manager"
+53-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:61:13-41
+54            android:targetActivity="com.example.javbrowser.MainActivity" >
+54-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:59:13-51
+55            <intent-filter>
+55-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:24:13-27:29
+56                <action android:name="android.intent.action.MAIN" />
+56-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:17-69
+56-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:25-66
+57
+58                <category android:name="android.intent.category.LAUNCHER" />
+58-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:17-77
+58-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:27-74
+59            </intent-filter>
+60        </activity-alias>
+61        <activity-alias
+61-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:44:9-55:26
+62            android:name="com.example.javbrowser.MainActivityNotes"
+62-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:45:13-46
+63            android:enabled="false"
+63-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:49:13-36
+64            android:exported="true"
+64-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:50:13-36
+65            android:icon="@drawable/ic_launcher_notes"
+65-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:47:13-55
+66            android:label="Notes"
+66-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:48:13-34
+67            android:targetActivity="com.example.javbrowser.MainActivity" >
+67-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:46:13-51
+68            <intent-filter>
+68-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:24:13-27:29
+69                <action android:name="android.intent.action.MAIN" />
+69-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:17-69
+69-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:25-66
+70
+71                <category android:name="android.intent.category.LAUNCHER" />
+71-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:17-77
+71-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:27-74
+72            </intent-filter>
+73        </activity-alias> <!-- Activity Aliases for Icon Switching -->
+74        <activity-alias
+74-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:31:9-42:26
+75            android:name="com.example.javbrowser.MainActivityCalculator"
+75-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:32:13-51
+76            android:enabled="false"
+76-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:36:13-36
+77            android:exported="true"
+77-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:37:13-36
+78            android:icon="@drawable/ic_launcher_calculator"
+78-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:34:13-60
+79            android:label="Calculator"
+79-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:35:13-39
+80            android:targetActivity="com.example.javbrowser.MainActivity" >
+80-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:33:13-51
+81            <intent-filter>
+81-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:24:13-27:29
+82                <action android:name="android.intent.action.MAIN" />
+82-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:17-69
+82-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:25:25-66
+83
+84                <category android:name="android.intent.category.LAUNCHER" />
+84-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:17-77
+84-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:26:27-74
+85            </intent-filter>
+86        </activity-alias>
+87
+88        <activity android:name="com.example.javbrowser.FavoritesActivity" />
+88-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:70:9-55
+88-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:70:19-52
+89        <activity android:name="com.example.javbrowser.SettingsActivity" />
+89-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:71:9-54
+89-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:71:19-51
+90        <activity
+90-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:72:9-77:66
+91            android:name="com.example.javbrowser.LockActivity"
+91-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:73:13-41
+92            android:excludeFromRecents="true"
+92-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:75:13-46
+93            android:launchMode="singleTop"
+93-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:74:13-43
+94            android:screenOrientation="portrait"
+94-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:76:13-49
+95            android:theme="@style/Theme.AppCompat.NoActionBar" />
+95-->D:\00000ABOT\jav\app\src\main\AndroidManifest.xml:77:13-63
+96
+97        <provider
+97-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+98            android:name="androidx.startup.InitializationProvider"
+98-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+99            android:authorities="com.example.javbrowser.androidx-startup"
+99-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+100            android:exported="false" >
+100-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+101            <meta-data
+101-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+102                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+102-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+103                android:value="androidx.startup" />
+103-->[androidx.emoji2:emoji2:1.2.0] C:\Users\lin kao\.gradle\caches\transforms-3\5bd09d469f39497674f99ddfe48d0ff2\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+104            <meta-data
+104-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\lin kao\.gradle\caches\transforms-3\b40b8a723d89bb221c4ba19bf2abf4cc\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+105                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+105-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\lin kao\.gradle\caches\transforms-3\b40b8a723d89bb221c4ba19bf2abf4cc\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+106                android:value="androidx.startup" />
+106-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\lin kao\.gradle\caches\transforms-3\b40b8a723d89bb221c4ba19bf2abf4cc\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+107            <meta-data
+107-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+108                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+108-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+109                android:value="androidx.startup" />
+109-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+110        </provider>
+111
+112        <receiver
+112-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+113            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+113-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+114            android:directBootAware="false"
+114-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+115            android:enabled="true"
+115-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+116            android:exported="true"
+116-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+117            android:permission="android.permission.DUMP" >
+117-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+118            <intent-filter>
+118-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+119                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+119-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+119-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+120            </intent-filter>
+121            <intent-filter>
+121-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+122                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+122-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+122-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+123            </intent-filter>
+124            <intent-filter>
+124-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+125                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+125-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+125-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+126            </intent-filter>
+127            <intent-filter>
+127-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+128                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+128-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+128-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\lin kao\.gradle\caches\transforms-3\820e62f0b30c90bc6c88badac0db92dc\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+129            </intent-filter>
+130        </receiver>
+131    </application>
+132
+133</manifest>
