@@ -174,7 +174,6 @@ class MainActivity : AppCompatActivity() {
                                 iframe.remove();
                             });
                             
-                            
                             // Remove elements with high z-index and fixed position (common for overlays)
                             var allElements = document.getElementsByTagName('*');
                             for (var i = 0; i < allElements.length; i++) {
@@ -206,17 +205,35 @@ class MainActivity : AppCompatActivity() {
                             var bottomRightAds = document.querySelectorAll('[class*="bottomRight"], [class*="slideAnimation"], [class*="root--"]');
                             bottomRightAds.forEach(function(ad) {
                                 // Additional check: if it contains tscprts or doppiocdn links
-                                if (ad.innerHTML.includes('tscprts.com') || ad.innerHTML.includes('doppiocdn.com')) {
+                                if (ad.innerHTML && (ad.innerHTML.includes('tscprts.com') || ad.innerHTML.includes('doppiocdn.com'))) {
                                     ad.remove();
                                 }
                             });
                             
-                            // Remove close-button ads
+                            // ENHANCED: Remove close-button ads and their parent containers (up to 2 levels)
+                            // BUT exclude video player controls (vjs-*)
                             var closeButtons = document.querySelectorAll('[class*="close-button"]');
                             closeButtons.forEach(function(btn) {
+                                // Skip if it's a video player control button
+                                if (btn.className.includes('vjs-') || btn.className.includes('video-js')) {
+                                    return; // Skip video player buttons
+                                }
+                                
+                                // First, try to auto-click the button
+                                try { btn.click(); } catch(e) {}
+                                
+                                // Remove up to 2 levels of parent to get the entire ad container
                                 var parent = btn.parentElement;
-                                if (parent) parent.remove();
-                                btn.remove();
+                                if (parent) {
+                                    var grandParent = parent.parentElement;
+                                    if (grandParent) {
+                                        grandParent.remove();
+                                    } else {
+                                        parent.remove();
+                                    }
+                                } else {
+                                    btn.remove();
+                                }
                             });
                             
                             // Remove dialog overlays by ID pattern or role
@@ -247,24 +264,28 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
                             }
-                        }
-                            }
 
-                            // Auto-click "Close" buttons
+
+                            // Auto-click "Close ad" buttons (but skip video player controls)
                             var buttons = document.querySelectorAll('button, div[role="button"], a');
                             buttons.forEach(function(btn) {
+                                // Skip video player controls
+                                if (btn.className.includes('vjs-') || btn.className.includes('video-js')) {
+                                    return;
+                                }
+                                
                                 var text = btn.innerText || "";
-                                if (text.toLowerCase().includes("close ad") || text.toLowerCase() === "close" || text.includes("×")) {
+                                if (text.toLowerCase().includes("close ad") || (text.toLowerCase() === "close" && !btn.closest('.video-js')) || text.includes("×")) {
                                     // Check if it looks like an ad close button (heuristic)
                                     if (btn.className.includes("close") || btn.className.includes("dismiss") || 
                                         (btn.style.position === 'absolute' && btn.style.top)) {
-                                        btn.click();
+                                        try { btn.click(); } catch(e) {}
                                         btn.remove(); // Remove it after clicking just in case
                                     }
                                 }
                             });
                         }
-                        }
+                        
                         // Run immediately and periodically
                         removeAds();
                         setInterval(removeAds, 1000);
