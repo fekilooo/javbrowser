@@ -14,7 +14,7 @@ JAV Browser 是一款專為成人影音網站打造的 Android 瀏覽器，致�
 
 | 首頁 | 播放按鈕界面 | 書籤 | 隱私設定 |
 | :---: | :---: | :---: | :---: |
-| <img src="https://i.imgur.com/oT5zrjm.png" width="200"/> | <img src="https://i.imgur.com/jUBffGA.png" width="200"/> | <img src="https://i.imgur.com/7kFGdbI.png" width="200"/> | <img src="https://i.imgur.com/YFuLTx3.png" width="200"/> |
+| <img src="https://i.imgur.com/oT5zrjm.png" width="200"/> | <img src="https://i.imgur.com/EkPbACZ.png" width="200"/> | <img src="https://i.imgur.com/7kFGdbI.png" width="200"/> | <img src="https://i.imgur.com/YFuLTx3.png" width="200"/> |
 
 ---
 
