@@ -1,4 +1,4 @@
-# JAV Browser - 終極私密瀏覽器
+# JAV Browser - 終極私密老司機瀏覽器
 
 ### 純淨無廣告 × 極致隱私保護 × 智能影片管理
 
@@ -135,7 +135,7 @@ JAV Browser 是一款專為成人影音網站打造的 Android 瀏覽器，致�
 ## 🚀 立即開始
 
 #### 1. 下載安裝
-- 點擊 [下載 APK](#) (請替換成您的下載連結)
+- 點擊 [下載 APK](https://github.com/fekilooo/javbrowser/releases/tag/1.0) (請替換成您的下載連結)
 - 在您的 Android 裝置上，允許「安裝未知來源的應用」。
 - 點擊下載的 APK 檔案進行安裝。
 
