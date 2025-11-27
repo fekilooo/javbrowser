@@ -26,7 +26,7 @@ class SettingsActivity : AppCompatActivity() {
 
         privacySettings = PrivacySettings(this)
         appIconManager = AppIconManager(this)
-        biometricHelper = BiometricHelper(this)
+        biometricHelper = BiometricHelper(this, privacySettings)
 
         switchLock = findViewById(R.id.switch_lock)
         radioGroup = findViewById(R.id.radio_group_icon)

@@ -21,11 +21,37 @@ class LockActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         // Prevent screenshots and hide content in recent apps
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        
+        privacySettings = PrivacySettings(this)
+        
+        // Set activity title and task description based on privacy mode
+        title = privacySettings.currentAppLabel
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            setTaskDescription(
+                android.app.ActivityManager.TaskDescription(
+                    privacySettings.currentAppLabel,
+                    privacySettings.currentIconResourceId
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            setTaskDescription(
+                android.app.ActivityManager.TaskDescription(
+                    privacySettings.currentAppLabel,
+                    android.graphics.BitmapFactory.decodeResource(resources, privacySettings.currentIconResourceId)
+                )
+            )
+        }
+        
         setContentView(R.layout.activity_lock)
 
-        privacySettings = PrivacySettings(this)
-        biometricHelper = BiometricHelper(this)
+
+        biometricHelper = BiometricHelper(this, privacySettings)
         tvPinDisplay = findViewById(R.id.tv_pin_display)
+
+        // Set icon based on privacy mode
+        val iconView = findViewById<android.widget.ImageView>(R.id.iv_lock_icon)
+        iconView.setImageResource(privacySettings.currentIconResourceId)
 
         setupPinPad()
         setupBiometricButton()

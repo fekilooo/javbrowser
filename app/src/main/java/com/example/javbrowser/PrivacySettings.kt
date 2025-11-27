@@ -3,7 +3,7 @@ package com.example.javbrowser
 import android.content.Context
 import android.content.SharedPreferences
 
-class PrivacySettings(context: Context) {
+class PrivacySettings(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("privacy_prefs", Context.MODE_PRIVATE)
     
     companion object {
@@ -54,4 +54,22 @@ class PrivacySettings(context: Context) {
     fun validatePin(inputPin: String): Boolean {
         return inputPin == pinCode
     }
+    
+    // Get current icon resource ID based on selected icon
+    val currentIconResourceId: Int
+        get() = when (selectedIcon) {
+            ICON_CALCULATOR -> R.drawable.ic_launcher_calculator
+            ICON_NOTES -> R.drawable.ic_launcher_notes
+            ICON_FILE -> R.drawable.ic_launcher_file
+            else -> R.drawable.ic_launcher  // Default
+        }
+    
+    // Get current app label based on selected icon
+    val currentAppLabel: String
+        get() = when (selectedIcon) {
+            ICON_CALCULATOR -> "Calculator"
+            ICON_NOTES -> "Notes"
+            ICON_FILE -> "File Manager"
+            else -> "JAV Browser"  // Default
+        }
 }

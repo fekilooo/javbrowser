@@ -6,7 +6,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
-class BiometricHelper(private val activity: FragmentActivity) {
+class BiometricHelper(private val activity: FragmentActivity, private val privacySettings: PrivacySettings) {
     
     fun canAuthenticate(): Boolean {
         val biometricManager = BiometricManager.from(activity)
@@ -40,8 +40,11 @@ class BiometricHelper(private val activity: FragmentActivity) {
                 }
             })
 
+        // Get current app name from privacy settings
+        val appLabel = privacySettings.currentAppLabel
+
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("解鎖 JAV Browser")
+            .setTitle("解鎖 $appLabel")
             .setSubtitle("使用生物識別驗證")
             .setNegativeButtonText("取消")
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)

@@ -114,6 +114,12 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
+                val lowerUrl = url.lowercase()
+
+                // Block Shopee and Lazada redirects
+                if (lowerUrl.contains("shopee") || lowerUrl.contains("shp.ee") || lowerUrl.contains("lazada")) {
+                    return true
+                }
                 
                 // Handle APK download
                 if (url.contains(".apk") || url.contains("down_ra")) {
@@ -129,8 +135,28 @@ class MainActivity : AppCompatActivity() {
                 val url = request?.url.toString()
                 val lowerUrl = url.lowercase()
                 
+                /* AD BLOCKING DISABLED
                 if (isAd(lowerUrl)) {
                     // Block ad
+                    return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("".toByteArray()))
+                }
+                */
+
+                // Block specific ad script source
+                if (lowerUrl.contains("creative.myavlive.com") || 
+                    lowerUrl.contains("silent-basis.pro") || 
+                    lowerUrl.contains("ptelastaxo.com") ||
+                    lowerUrl.contains("magsrv.com") ||
+                    lowerUrl.contains("afcdn.net") ||
+                    lowerUrl.contains("siscprts.com") ||
+                    lowerUrl.contains("exoclick.com") ||
+                    lowerUrl.contains("go.mnaspm.com") ||
+                    lowerUrl.contains("smartpop") ||
+                    lowerUrl.contains("tsyndicate.com") ||
+                    lowerUrl.contains("ad-provider.js") ||
+                    lowerUrl.contains("shopee") || 
+                    lowerUrl.contains("shp.ee") || 
+                    lowerUrl.contains("lazada")) {
                     return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("".toByteArray()))
                 }
                 
@@ -240,12 +266,24 @@ class MainActivity : AppCompatActivity() {
                             var dialogs = document.querySelectorAll('div[role="dialog"], div[id^="radix-"]');
                             dialogs.forEach(function(dialog) { dialog.remove(); });
                             
-                            // Remove specific ad links/images - Enhanced
+                            // Remove specific ad links/images - Enhanced with Safeguard
+                            function isSafeToRemove(element) {
+                                if (!element) return false;
+                                if (element.id === 'player') return false;
+                                if (element.classList.contains('video-js')) return false;
+                                if (element.classList.contains('vjs-tech')) return false;
+                                if (element.querySelector && (element.querySelector('#player') || element.querySelector('.video-js'))) return false;
+                                return true;
+                            }
+
                             var adLinks = document.querySelectorAll('a[href*="ra12.xyz"], a[href*="tscprts.com"], a[href*="doppiocdn.com"], img[src*="doppiocdn.com"]');
                             adLinks.forEach(function(link) { 
                                 var parent = link.closest('div');
-                                if (parent) parent.remove();
-                                link.remove(); 
+                                if (parent && isSafeToRemove(parent)) {
+                                    parent.remove();
+                                } else {
+                                    link.remove(); 
+                                }
                             });
 
                             // Generic removal for bottom floating ads (all sites now, not just rou.video)
@@ -291,7 +329,209 @@ class MainActivity : AppCompatActivity() {
                         setInterval(removeAds, 1000);
                     })();
                 """.trimIndent()
-                view?.evaluateJavascript(removeAdsJs, null)
+                // view?.evaluateJavascript(removeAdsJs, null) // DISABLED FOR TESTING
+
+                // New MISSAV Ad Blocking Logic
+                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true) {
+                    val missavAdBlockJs = """
+                        (function() {
+                            'use strict';
+
+                            // 1. 攔截彈窗與惡意跳轉邏輯
+                            var websites = ["missav.com/pop", "tsyndicate.com/api", "missav.ws/pop"];
+                            var url = window.location.href;
+                            for (var i = 0; i < websites.length; i++) {
+                                // 簡單的正則匹配
+                                if (url.indexOf(websites[i]) !== -1) {
+                                    // 在WebView中，window.close() 可能無效，通常需要透過 about:blank 停止加載
+                                    window.location.href = "about:blank";
+                                    return; // 停止後續執行
+                                }
+                            }
+
+                            // 2. 移除廣告 DOM 元素的函數
+                            function cleanAds() {
+                                // 移除特定的廣告區塊 (class 僅為 mx-auto 的元素)
+                                try {
+                                    const mxauto = document.querySelectorAll('.mx-auto:not([class*=" "])');
+                                    mxauto.forEach(node => node.remove());
+                                } catch (e) {}
+
+                                // 移除特定的 root + bottomRight 廣告區塊 (動態識別)
+                                try {
+                                    // 1. 注入 CSS 強制隱藏
+                                    var style = document.createElement('style');
+                                    style.innerHTML = `
+                                        div[class*="root"][class*="bottomRight"],
+                                        div[role="dialog"]:not([data-slot="sheet-content"]),
+                                        div[id^="radix-"]:not([data-slot="sheet-content"]),
+                                        div[id^="__clb-spot_"],
+                                        div[id^="ts_ad_"],
+                                        div[id^="exo-native-widget"],
+                                        .exo-native-widget,
+                                        div[data-banner-id],
+                                        .rmp-ad-container,
+                                        script[src*="magsrv.com"],
+                                        ins[data-zoneid],
+                                        ins {
+                                            display: none !important;
+                                        }
+                                    `;
+                                    document.head.appendChild(style);
+
+                                    // 2. 使用 MutationObserver 監聽並移除
+                                    var observer = new MutationObserver(function(mutations) {
+                                        // Safeguard function
+                                        function isSafeToRemove(element) {
+                                            if (!element) return false;
+                                            if (element.id === 'player') return false;
+                                            if (element.classList.contains('video-js')) return false;
+                                            if (element.classList.contains('vjs-tech')) return false;
+                                            if (element.querySelector && (element.querySelector('#player') || element.querySelector('.video-js'))) return false;
+                                            return true;
+                                        }
+
+                                        mutations.forEach(function(mutation) {
+                                            mutation.addedNodes.forEach(function(node) {
+                                                if (node.nodeType === 1) { // Element
+                                                    // Check if node matches generic ad selectors
+                                                    if (node.matches && (
+                                                        node.matches('div[class*="root"][class*="bottomRight"]') ||
+                                                        (node.matches('div[role="dialog"]') && node.getAttribute('data-slot') !== 'sheet-content') ||
+                                                        (node.matches('div[id^="radix-"]') && node.getAttribute('data-slot') !== 'sheet-content') ||
+                                                        node.matches('div[id^="__clb-spot_"]') ||
+                                                        node.matches('div[id^="ts_ad_"]') ||
+                                                        node.matches('div[data-banner-id]') ||
+                                                        node.matches('.rmp-ad-container') ||
+                                                        node.matches('ins')
+                                                    )) {
+                                                        if (isSafeToRemove(node)) {
+                                                            node.remove();
+                                                        }
+                                                    }
+                                                    
+                                                    // Check for Rou.Video specific cards (已停用以避免誤刪播放器)
+                                                    // if (node.matches && node.matches('div[data-slot="card"]')) {
+                                                    //     if (isSafeToRemove(node) && (node.innerText.includes('通告') || node.innerHTML.includes('ra12.xyz'))) {
+                                                    //         node.remove();
+                                                    //     }
+                                                    // }
+
+                                                    // Check for dynamic ad links
+                                                    if (node.matches && (node.matches('a[href*="ra12.xyz"]') || node.matches('a[href*="rdz1.xyz"]'))) {
+                                                        var container = node.closest('.grid') || node.closest('div');
+                                                        if (container && isSafeToRemove(container)) {
+                                                            container.remove();
+                                                        } else {
+                                                            node.remove();
+                                                        }
+                                                    }
+
+                                                    // Check children of added node for ad links
+                                                    var dynamicAdLinks = node.querySelectorAll('a[href*="ra12.xyz"], a[href*="rdz1.xyz"]');
+                                                    dynamicAdLinks.forEach(link => {
+                                                        var container = link.closest('.grid') || link.closest('div');
+                                                        if (container && isSafeToRemove(container)) {
+                                                            container.remove();
+                                                        } else {
+                                                            link.remove();
+                                                        }
+                                                    });
+                                                    
+                                                    // Also check children
+                                                    var ads = node.querySelectorAll('div[class*="root"][class*="bottomRight"], div[role="dialog"]:not([data-slot="sheet-content"]), div[id^="radix-"]:not([data-slot="sheet-content"]), div[id^="__clb-spot_"], div[id^="ts_ad_"], div[data-banner-id], .rmp-ad-container, ins');
+                                                    ads.forEach(ad => {
+                                                        if (isSafeToRemove(ad)) {
+                                                            ad.remove();
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        });
+                                    });
+                                    observer.observe(document.body, { childList: true, subtree: true });
+
+                                    // 3. 初始移除 (播放器可能還沒載入，避免誤刪)
+                                    function cleanAdsInitial() {
+                                        // Safeguard
+                                        function isSafeToRemove(element) {
+                                            if (!element) return false;
+                                            if (element.id === 'player') return false;
+                                            if (element.classList.contains('video-js')) return false;
+                                            if (element.classList.contains('vjs-tech')) return false;
+                                            if (element.querySelector && (element.querySelector('#player') || element.querySelector('.video-js'))) return false;
+                                            return true;
+                                        }
+
+                                        // Generic selectors (不包括 card，因為播放器可能還沒載入)
+                                        const selectors = [
+                                            'div[class*="root"][class*="bottomRight"]',
+                                            'div[role="dialog"]:not([data-slot="sheet-content"])',
+                                            'div[id^="radix-"]:not([data-slot="sheet-content"])',
+                                            'div[id^="__clb-spot_"]',
+                                            'div[id^="ts_ad_"]',
+                                            'div[id^="exo-native-widget"]',
+                                            '.exo-native-widget',
+                                            'div[data-banner-id]',
+                                            '.rmp-ad-container',
+                                            'ins[data-zoneid]',
+                                            'ins'
+                                        ];
+                                        
+                                        selectors.forEach(selector => {
+                                            document.querySelectorAll(selector).forEach(node => {
+                                                if (isSafeToRemove(node)) {
+                                                    node.style.display = 'none';
+                                                    node.remove();
+                                                }
+                                            });
+                                        });
+                                        
+                                        // Remove magsrv.com ad scripts (jable.tv)
+                                        document.querySelectorAll('script[src*="magsrv.com"]').forEach(script => {
+                                            script.remove();
+                                        });
+                                        
+                                        // Generic ad links and their containers
+                                        document.querySelectorAll('a[href*="ra12.xyz"], a[href*="rdz1.xyz"]').forEach(link => {
+                                            var container = link.closest('.grid') || link.closest('div');
+                                            if (container && isSafeToRemove(container)) {
+                                                container.remove();
+                                            } else {
+                                                link.remove();
+                                            }
+                                        });
+                                    }
+                                    
+                                    
+                                    cleanAdsInitial();
+                                } catch (e) {}
+
+                                // 嘗試點擊各種類型的關閉按鈕
+                                // 註：這些 Class 名稱可能是混淆過的，網站更新後可能失效
+                                const closeSelectors = [
+                                    ".close-button--wsOv0",
+                                    ".absolute.top-1.right-1.p-0.5.bg-black.rounded-lg.opacity-70"
+                                ];
+
+                                closeSelectors.forEach(selector => {
+                                    const btns = document.querySelectorAll(selector);
+                                    btns.forEach(btn => btn.click());
+                                });
+                            }
+
+                            // 執行邏輯
+                            cleanAds();
+
+                            // 延遲執行 (應對動態加載的廣告)
+                            setTimeout(cleanAds, 1000);
+                            setTimeout(cleanAds, 2500);
+                            setTimeout(cleanAds, 5000);
+
+                        })();
+                    """.trimIndent()
+                    view?.evaluateJavascript(missavAdBlockJs, null)
+                }
                 
                 checkForVideo()
                 updateFavoriteIcon()
