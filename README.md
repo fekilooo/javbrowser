@@ -120,7 +120,7 @@ JAV Browser 是一款專為老司機線上影音網站打造的 Android 瀏覽�
 ## 🚀 立即開始
 
 #### 1. 下載安裝
-- 點擊 [下載 APK](https://github.com/fekilooo/javbrowser/releases/tag/1.0) (請替換成您的下載連結)
+- 點擊 [下載 APK](https://github.com/fekilooo/javbrowser/releases/) (請替換成您的下載連結)
 - 在您的 Android 裝置上，允許「安裝未知來源的應用」。
 - 點擊下載的 APK 檔案進行安裝。
 
