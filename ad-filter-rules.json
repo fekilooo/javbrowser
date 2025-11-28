@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "lastUpdate": "2025-11-28T13:30:00Z",
+    "rules": {
+        "commonBlock": [
+            "creative.myavlive.com",
+            "silent-basis.pro",
+            "ptelastaxo.com",
+            "magsrv.com",
+            "afcdn.net",
+            "siscprts.com",
+            "exoclick.com",
+            "go.mnaspm.com",
+            "onclckbn.net",
+            "smartpop",
+            "tsyndicate.com",
+            "ad-provider.js",
+            "ra12.xyz",
+            "rdz1.xyz",
+            "uug27.com",
+            "fluxtrck.site",
+            "fuu78.com",
+            "zlinkr.com",
+            "mnaspm.com",
+            "shukriya90.com",
+            "shopee",
+            "shp.ee",
+            "lazada"
+        ],
+        "networkBlock": [],
+        "linkBlock": [],
+        "iframeBlock": [],
+        "redirectBlock": []
+    }
+}
