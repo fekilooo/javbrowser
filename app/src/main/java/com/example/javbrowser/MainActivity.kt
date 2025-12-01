@@ -1,5 +1,6 @@
 package com.example.javbrowser
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -21,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnAddFavorite: Button
     private lateinit var btnViewFavorites: Button
     private lateinit var btnSettings: Button
+    private lateinit var progressBar: android.widget.ProgressBar
     private lateinit var favoritesManager: FavoritesManager
     private lateinit var privacySettings: PrivacySettings
     private lateinit var biometricHelper: BiometricHelper
@@ -30,6 +32,13 @@ class MainActivity : AppCompatActivity() {
     private var isFreshStart = true
     private val REQUEST_CODE_FAVORITES = 1001
     private val REQUEST_CODE_LOCK = 1002
+    
+    // Loading Timeout & Progress
+    private var loadStartTime: Long = 0
+    private var timeoutHandler: android.os.Handler? = null
+    private var timeoutRunnable: Runnable? = null
+    private val TIMEOUT_DURATION = 30000L // 30 seconds
+    private var backPressedTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         btnAddFavorite = findViewById(R.id.btn_add_favorite)
         btnViewFavorites = findViewById(R.id.btn_view_favorites)
         btnSettings = findViewById(R.id.btn_settings)
+        progressBar = findViewById(R.id.progressBar)
 
         initializeApp()
     }
@@ -110,6 +120,42 @@ class MainActivity : AppCompatActivity() {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+
+        // Add JS interface globally
+        webView.addJavascriptInterface(object {
+            @android.webkit.JavascriptInterface
+            fun onVideoFound(videoUrl: String) {
+                runOnUiThread {
+                    currentVideoUrl = videoUrl
+                    btnPlay.visibility = View.VISIBLE
+                }
+            }
+            
+            @android.webkit.JavascriptInterface
+            fun navigateToUrl(url: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Connecting...", Toast.LENGTH_SHORT).show()
+                    progressBar.visibility = View.VISIBLE
+                    progressBar.progress = 10
+                    webView.loadUrl(url)
+                    startLoadTimeout()
+                }
+            }
+            
+            @android.webkit.JavascriptInterface
+            fun showHelpDialog() {
+                runOnUiThread {
+                    this@MainActivity.showHelpDialog()
+                }
+            }
+            
+            @android.webkit.JavascriptInterface
+            fun loadLandingPage() {
+                runOnUiThread {
+                    this@MainActivity.loadLandingPage()
+                }
+            }
+        }, "Android")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -184,10 +230,22 @@ class MainActivity : AppCompatActivity() {
                 btnPlay.visibility = View.GONE
                 currentVideoUrl = null
                 videoFoundToastShown = false
+                
+                // Show progress bar and start timeout
+                if (!isOnLandingPage()) {
+                    progressBar.visibility = View.VISIBLE
+                    progressBar.progress = 0
+                    startLoadTimeout()
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                
+                // Hide progress bar and cancel timeout
+                progressBar.visibility = View.GONE
+                cancelLoadTimeout()
+                
                 // Do NOT reset btnPlay or currentVideoUrl here, as video might have been found during load
                 
                 // Inject JS to remove specific ad elements
@@ -332,7 +390,7 @@ class MainActivity : AppCompatActivity() {
                 // view?.evaluateJavascript(removeAdsJs, null) // DISABLED FOR TESTING
 
                 // New MISSAV Ad Blocking Logic
-                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true) {
+                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true || url?.contains("rouva2.xyz") == true) {
                     val missavAdBlockJs = """
                         (function() {
                             'use strict';
@@ -575,7 +633,7 @@ class MainActivity : AppCompatActivity() {
         // MissAV: usually has UUID or just check all pages on missav domain
         
         // Special handling for rou.video - monitor video src continuously
-        if (url.contains("rou.video")) {
+        if (url.contains("rou.video") || url.contains("rouva2.xyz")) {
             // Inject JS to monitor video element for src changes
             val monitorJs = """
                 (function() {
@@ -598,16 +656,7 @@ class MainActivity : AppCompatActivity() {
             """.trimIndent()
             
             // Add JS interface to receive callback
-            webView.addJavascriptInterface(object {
-                @android.webkit.JavascriptInterface
-                fun onVideoFound(videoUrl: String) {
-                    runOnUiThread {
-                        currentVideoUrl = videoUrl
-                        btnPlay.visibility = View.VISIBLE
-                        // Toast.makeText(this@MainActivity, R.string.video_found, Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }, "Android")
+            // webView.addJavascriptInterface(..., "Android") // MOVED TO setupWebView()
             
             webView.evaluateJavascript(monitorJs, null)
         } else {
@@ -727,6 +776,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun playVideo(url: String) {
         try {
+            // Copy URL to clipboard
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Video URL", url)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Video URL copied to clipboard", Toast.LENGTH_SHORT).show()
+
             val intent = Intent(Intent.ACTION_VIEW)
             intent.setDataAndType(Uri.parse(url), "video/*") // Or application/x-mpegURL
             // Try to find a handler
@@ -750,14 +805,35 @@ class MainActivity : AppCompatActivity() {
         if (webView.canGoBack()) {
             webView.goBack()
         } else {
-            super.onBackPressed()
+            if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                showExitConfirmationDialog()
+            } else {
+                Toast.makeText(this, "再按一次退出", Toast.LENGTH_SHORT).show()
+                backPressedTime = System.currentTimeMillis()
+            }
         }
+    }
+
+    private fun showExitConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("退出應用程式")
+            .setMessage("確定要退出嗎？")
+            .setPositiveButton("是") { _, _ ->
+                finish()
+            }
+            .setNegativeButton("否", null)
+            .show()
     }
     
     private fun setupHomeButton() {
         btnHome.setOnClickListener {
             loadLandingPage()
         }
+    }
+    
+    private fun isOnLandingPage(): Boolean {
+        val url = webView.url
+        return url == null || url == "about:blank" || url.startsWith("data:")
     }
     
     private fun loadLandingPage() {
@@ -835,6 +911,21 @@ class MainActivity : AppCompatActivity() {
                         margin: 20px 0;
                         color: #888;
                     }
+                    .help-button {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background-color: #333;
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 10px;
+                        margin: 10px auto;
+                        cursor: pointer;
+                        border: 2px solid #555;
+                    }
                 </style>
             </head>
             <body>
@@ -850,10 +941,12 @@ class MainActivity : AppCompatActivity() {
                 
                 <div class="divider">或直接前往</div>
                 
-                <a href="https://missav.ws/">Go to MissAV</a>
-                <a href="https://jable.tv/">Go to Jable.TV</a>
-                <a href="https://rou.video/home">Go to Rou.Video</a>
+                <a href="javascript:Android.navigateToUrl('https://missav.ws/')">Go to MissAV</a>
+                <a href="javascript:Android.navigateToUrl('https://jable.tv/hot/')">Go to Jable.TV</a>
+                <a href="javascript:Android.navigateToUrl('https://rouva2.xyz/home')">Go to Rou.Video</a>
                 
+                <div class="help-button" onclick="showHelp()">?</div>
+
                 <script>
                     const searchInput = document.getElementById('searchInput');
                     const searchResults = document.getElementById('searchResults');
@@ -878,14 +971,18 @@ class MainActivity : AppCompatActivity() {
                     searchInput.addEventListener('keypress', function(e) {
                         if (e.key === 'Enter' && this.value.trim().length > 0) {
                             // Default to MissAV on Enter
-                            window.location.href = searchMissAV.href;
+                            Android.navigateToUrl(searchMissAV.href);
                         }
                     });
+                    
+                    function showHelp() {
+                        Android.showHelpDialog();
+                    }
                 </script>
                 
-                <div style="margin-top: 40px; padding: 20px;">
+                <div style="margin-top: 10px; padding: 10px;">
                     <a href="https://www.277sy.com/index.php/Rmiddle/down_ra/?appid=401&tgid=da0003500&type=1" 
-                       style="display: block; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                       style="display: block; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                               border-radius: 12px; text-decoration: none; color: white; text-align: center; 
                               font-size: 18px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                         🐱 靈貓遊戲 - 超低折扣 | 海量福利 | 專屬特權<br>
@@ -895,7 +992,7 @@ class MainActivity : AppCompatActivity() {
             </body>
             </html>
         """.trimIndent()
-        webView.loadDataWithBaseURL(null, landingHtml, "text/html", "utf-8", null)
+        webView.loadDataWithBaseURL("https://javbrowser.app/", landingHtml, "text/html", "utf-8", null)
     }
     
     private fun downloadAndInstallApk(url: String) {
@@ -913,4 +1010,181 @@ class MainActivity : AppCompatActivity() {
     
 
 
+    private fun startLoadTimeout() {
+        // Cancel any existing timeout
+        cancelLoadTimeout()
+        
+        // Initialize handler if needed
+        if (timeoutHandler == null) {
+            timeoutHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        }
+        
+        // Create and schedule timeout runnable
+        timeoutRunnable = Runnable {
+            android.util.Log.w("JAVBrowser", "[TIMEOUT] Page load timeout after ${TIMEOUT_DURATION}ms")
+            
+            runOnUiThread {
+                progressBar.visibility = View.GONE
+                
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Connection Timeout")
+                    .setMessage("Page load took too long.\n\nSuggestions:\n• Check your internet connection\n• Switch between WiFi/4G\n• Tap Retry")
+                    .setPositiveButton("Retry") { _, _ ->
+                        webView.reload()
+                    }
+                    .setNegativeButton("Go Home") { _, _ ->
+                        loadLandingPage()
+                    }
+                    .setNeutralButton("Cancel", null)
+                    .show()
+            }
+        }
+        
+        timeoutHandler?.postDelayed(timeoutRunnable!!, TIMEOUT_DURATION)
+    }
+    
+    private fun cancelLoadTimeout() {
+        timeoutRunnable?.let {
+            timeoutHandler?.removeCallbacks(it)
+            timeoutRunnable = null
+        }
+    }
+    
+    private fun getErrorPageHtml(errorDescription: String, failingUrl: String): String {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        background-color: #121212;
+                        color: white;
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        padding: 40px 20px;
+                        margin: 0;
+                    }
+                    .error-icon {
+                        font-size: 80px;
+                        margin-bottom: 20px;
+                    }
+                    h1 {
+                        color: #FF6B6B;
+                        margin-bottom: 15px;
+                    }
+                    p {
+                        color: #CCCCCC;
+                        line-height: 1.6;
+                        margin-bottom: 10px;
+                    }
+                    .url {
+                        background-color: #1E1E1E;
+                        padding: 10px;
+                        border-radius: 5px;
+                        word-break: break-all;
+                        margin: 20px 0;
+                        font-size: 14px;
+                        color: #888;
+                    }
+                    .button {
+                        display: inline-block;
+                        background-color: #BB86FC;
+                        color: black;
+                        padding: 12px 30px;
+                        margin: 10px 5px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        font-weight: bold;
+                    }
+                    .button:active {
+                        background-color: #CF6FFF;
+                    }
+                    .suggestions {
+                        text-align: left;
+                        max-width: 400px;
+                        margin: 30px auto;
+                        background-color: #1E1E1E;
+                        padding: 20px;
+                        border-radius: 10px;
+                    }
+                    .suggestions h3 {
+                        color: #BB86FC;
+                        margin-top: 0;
+                    }
+                    .suggestions li {
+                        margin: 10px 0;
+                        color: #CCCCCC;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="error-icon">⚠️</div>
+                <h1>無法載入頁面</h1>
+                <p>$errorDescription</p>
+                <div class="url">$failingUrl</div>
+                
+                <div class="suggestions">
+                    <h3>💡 建議解決方式：</h3>
+                    <ul>
+                        <li>檢查網路連線是否正常</li>
+                        <li>嘗試切換 WiFi 和行動數據</li>
+                        <li>重新整理頁面</li>
+                        <li>稍後再試</li>
+                    </ul>
+                </div>
+
+                <a href="javascript:location.reload();" class="button">🔄 重新載入</a>
+                <br><br>
+                <a href="javascript:Android.loadLandingPage();" class="button" style="background-color: #333; color: white; border: 1px solid #555;">🏠 返回首頁</a>
+                
+                <script>
+                    // Ensure Android interface exists for the back button
+                    if (typeof Android === 'undefined') {
+                        Android = {
+                            loadLandingPage: function() { window.history.back(); }
+                        };
+                    }
+                </script>
+            </body>
+            </html>
+        """.trimIndent()
+    }
+    
+    private fun showHelpDialog() {
+        val message = """
+        
+            JAV Browser - Video Player & Downloader
+            
+            🎬 Features:
+            • Auto-detect m3u8 video streams
+            • Play externally (VLC, MX Player)
+            • Download support
+            • Ad blocking
+            • Favorites system
+            
+            📱 Recommended Players:
+            • VLC Media Player
+            • MX Player
+            • KM Player
+            
+            💾 Recommended Downloader:
+            Lj Video Downloader (m3u8, mp4, mpd)
+            
+            💡 Tip:
+            Ad-free MOD versions of Lj Downloader are available online.
+        """.trimIndent()
+        
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("❓ Help")
+            .setMessage(message)
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cancelLoadTimeout()
+    }
 }

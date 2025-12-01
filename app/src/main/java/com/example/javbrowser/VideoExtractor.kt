@@ -24,7 +24,7 @@ object VideoExtractor {
         val matcher = evalPattern.matcher(html)
         
         if (matcher.find()) {
-            val payload = matcher.group(1)
+            val payload = matcher.group(1) ?: ""
             val radix = matcher.group(2).toInt()
             val count = matcher.group(3).toInt()
             val dictString = matcher.group(4)

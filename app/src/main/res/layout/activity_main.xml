@@ -55,6 +55,19 @@
             android:textSize="18sp" />
     </LinearLayout>
 
+    <!-- Loading Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        android:visibility="gone"
+        android:progressTint="#BB86FC"
+        android:layout_marginTop="60dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <WebView
         android:id="@+id/webView"
         android:layout_width="0dp"

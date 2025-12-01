@@ -44,8 +44,8 @@
         "source": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-main-36:\\layout\\activity_settings.xml"
     },
     {
-        "merged": "com.example.javbrowser.app-merged_res-34:/layout_activity_lock.xml.flat",
-        "source": "com.example.javbrowser.app-main-36:/layout/activity_lock.xml"
+        "merged": "com.example.javbrowser.app-merged_res-34:/layout_activity_main.xml.flat",
+        "source": "com.example.javbrowser.app-main-36:/layout/activity_main.xml"
     },
     {
         "merged": "C:\\Users\\lin kao\\.gradle\\daemon\\8.2\\com.example.javbrowser.app-merged_res-34:\\drawable_ic_launcher_notes.xml.flat",

@@ -3197,10 +3197,13 @@ id btn_add_favorite
 id btn_back
 id btn_delete
 id btn_enter
+id btn_export_rules
 id btn_home
+id btn_import_rules
 id btn_play
 id btn_set_pin
 id btn_settings
+id btn_update_from_cloud
 id btn_use_biometric
 id btn_view_favorites
 id buttonPanel
@@ -3284,6 +3287,7 @@ id end
 id endToStart
 id enterAlways
 id enterAlwaysCollapsed
+id et_cloud_url
 id et_search
 id exitUntilCollapsed
 id expand_activities_button
@@ -3470,6 +3474,7 @@ id pooling_container_listener_holder_tag
 id position
 id postLayout
 id pressed
+id progressBar
 id progress_circular
 id progress_horizontal
 id radio
@@ -3599,6 +3604,7 @@ id transition_transform
 id triangle
 id tv_empty
 id tv_pin_display
+id tv_rules_status
 id tv_title
 id tv_url
 id unchecked

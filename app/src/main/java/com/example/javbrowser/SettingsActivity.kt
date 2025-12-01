@@ -17,6 +17,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var privacySettings: PrivacySettings
     private lateinit var appIconManager: AppIconManager
     private lateinit var biometricHelper: BiometricHelper
+    private lateinit var adFilterRules: AdFilterRules
+    private lateinit var etCloudUrl: android.widget.EditText
+    private lateinit var btnUpdateFromCloud: Button
+    private lateinit var tvRulesStatus: android.widget.TextView
+    private lateinit var btnExportRules: Button
+    private lateinit var btnImportRules: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,14 +32,21 @@ class SettingsActivity : AppCompatActivity() {
 
         privacySettings = PrivacySettings(this)
         appIconManager = AppIconManager(this)
+        adFilterRules = AdFilterRules(this)
         biometricHelper = BiometricHelper(this, privacySettings)
 
         switchLock = findViewById(R.id.switch_lock)
         radioGroup = findViewById(R.id.radio_group_icon)
         btnBack = findViewById(R.id.btn_back)
+        etCloudUrl = findViewById(R.id.et_cloud_url)
+        btnUpdateFromCloud = findViewById(R.id.btn_update_from_cloud)
+        tvRulesStatus = findViewById(R.id.tv_rules_status)
+        btnExportRules = findViewById(R.id.btn_export_rules)
+        btnImportRules = findViewById(R.id.btn_import_rules)
 
         loadSettings()
         setupListeners()
+        updateRulesStatus()
     }
 
     private fun loadSettings() {
@@ -102,6 +115,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+
     private fun showSetPinDialog() {
         val input = android.widget.EditText(this)
         input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
@@ -157,5 +171,87 @@ class SettingsActivity : AppCompatActivity() {
                 loadSettings() // Revert selection
             }
             .show()
+    }
+    
+    private fun updateRulesStatus() {
+        // Load cloud URL
+        etCloudUrl.setText(adFilterRules.cloudUrl)
+        
+        // Update stats
+        val stats = adFilterRules.getRulesStats()
+        val lastUpdate = if (adFilterRules.getLastUpdateTime() > 0) {
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+                .format(java.util.Date(adFilterRules.getLastUpdateTime()))
+        } else {
+            "從未更新"
+        }
+        
+        val statusText = """
+            版本: ${adFilterRules.getVersion()}
+            最後更新: $lastUpdate
+            
+            通用遮蔽 (commonBlock): ${stats["commonBlock"]} 個
+            網路攔截 (僅專用): ${stats["networkBlock"]} 個
+            超連結遮蔽 (僅專用): ${stats["linkBlock"]} 個
+            Iframe 遮蔽 (僅專用): ${stats["iframeBlock"]} 個
+            重定向阻擋 (僅專用): ${stats["redirectBlock"]} 個
+            
+            總計: ${stats["total"]} 個規則
+        """.trimIndent()
+        
+        tvRulesStatus.text = statusText
+        
+        // Setup listeners
+        btnUpdateFromCloud.setOnClickListener {
+            val url = etCloudUrl.text.toString().trim()
+            if (url.isEmpty()) {
+                Toast.makeText(this, "請輸入雲端規則網址", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            // Save URL
+            adFilterRules.cloudUrl = url
+            
+            // Show progress
+            btnUpdateFromCloud.isEnabled = false
+            btnUpdateFromCloud.text = "更新中..."
+            
+            adFilterRules.updateRulesFromCloud(url) { success, message ->
+                btnUpdateFromCloud.isEnabled = true
+                btnUpdateFromCloud.text = "從雲端更新規則"
+                
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                
+                if (success) {
+                    updateRulesStatus()
+                }
+            }
+        }
+        
+        btnExportRules.setOnClickListener {
+            val json = adFilterRules.exportToJson()
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Ad Filter Rules", json)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "規則已複製到剪貼簿", Toast.LENGTH_SHORT).show()
+        }
+        
+        btnImportRules.setOnClickListener {
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clipData = clipboard.primaryClip
+            
+            if (clipData != null && clipData.itemCount > 0) {
+                val json = clipData.getItemAt(0).text.toString()
+                
+                if (adFilterRules.importFromJson(json)) {
+                    Toast.makeText(this, "規則導入成功", Toast.LENGTH_SHORT).show()
+                    updateRulesStatus()
+                } else {
+                    Toast.makeText(this, "規則格式錯誤，導入失敗", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(this, "剪貼簿中沒有內容", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

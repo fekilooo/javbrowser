@@ -129,7 +129,7 @@ class FavoritesActivity : AppCompatActivity() {
                 val iconRes = when {
                     item.url.contains("missav") -> android.R.drawable.ic_menu_camera
                     item.url.contains("jable") -> android.R.drawable.ic_menu_gallery
-                    item.url.contains("rou.video") -> android.R.drawable.ic_menu_view
+                    item.url.contains("rou.video") || item.url.contains("rouva2.xyz") -> android.R.drawable.ic_menu_view
                     else -> android.R.drawable.ic_menu_gallery
                 }
                 holder.ivThumbnail.setImageResource(iconRes)
