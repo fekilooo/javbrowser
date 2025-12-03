@@ -1,182 +1,228 @@
-# JAV Browser - 終極私密老司機瀏覽器
+# **JAV Browser – The Ultimate Private Player for MISSAV, JABLE.TV & ROU.VIDEO**
 
-### 純淨盡量無廣告 × 極致隱私保護 × 智能影片管理
+### **Ad-Lite Browsing × Extreme Privacy × Smart Video Tools**
 
 <p align="center">
-  <img src="https://i.imgur.com/oT5zrjm.png" alt="JAV Browser 首頁" width="80%">
+  <img src="https://i.imgur.com/oT5zrjm.png" alt="JAV Browser Home" width="80%">
 </p>
 
-## ✨ 總覽
+---
 
-JAV Browser 是一款專為老司機線上影音網站打造的 Android 瀏覽器，使用外部播放器開啟影片。致力於解決彈窗廣告、部分浮動廣告、追蹤腳本等干擾，讓您的觀影體驗回歸純粹、安全與私密。
+## ✨ **Overview**
 
-### 應用程式截圖
+**JAV Browser** is a privacy-focused Android browser designed specifically for online video sites such as **MISSAV**, **JABLE.TV**, and **ROU.VIDEO**.
+It intelligently reduces intrusive ads, blocks disruptive scripts, and integrates seamlessly with external players for a smoother, safer, and more private viewing experience.
 
-| 首頁 | 播放按鈕界面 | 書籤 | 隱私設定 |
-| :---: | :---: | :---: | :---: |
+---
+
+## 📸 **App Screenshots**
+
+|                           Home                           |                     Player Button UI                     |                         Bookmarks                        |                     Privacy Settings                     |
+| :------------------------------------------------------: | :------------------------------------------------------: | :------------------------------------------------------: | :------------------------------------------------------: |
 | <img src="https://i.imgur.com/oT5zrjm.png" width="200"/> | <img src="https://i.imgur.com/EkPbACZ.png" width="200"/> | <img src="https://i.imgur.com/7kFGdbI.png" width="200"/> | <img src="https://i.imgur.com/YFuLTx3.png" width="200"/> |
 
 ---
 
-## 🎯 為什麼選擇 JAV Browser？
+## 🎯 **Why Choose JAV Browser?**
 
-**😤 您是否受夠了這些困擾？**
-- ❌ 滿屏彈窗廣告，點哪都是廣告
-- ❌ 想收藏影片卻沒有好用的工具
-- ❌ 找不到好用的外部播放器整合
-- ❌ 擔心被他人發現瀏覽記錄
-- ❌ 多工畫面洩漏隱私內容
+**Tired of this?**
 
-**✅ JAV Browser 完美解決！**
+* ❌ Full-screen pop-up ads
+* ❌ Floating banners that never disappear
+* ❌ No easy bookmarking for videos
+* ❌ Hard to use external players
+* ❌ Worried about leaving traces or being seen
+* ❌ Sensitive content showing in Recent Apps
 
----
-
-## 🌟 核心功能
-
-### 1️⃣ 🛡️ 智能多層攔截機制，徹底清除網頁干擾。
-
-- **網路層攔截**: 從源頭阻斷廣告請求，節省流量。
-- **DOM 元素移除**: 自動清除頁面上的廣告區塊。
-- **自動點擊關閉**: 智能偵測並點擊廣告的關閉按鈕。
-- **定期掃描清理**: 每秒自動檢查並移除新生的廣告元素。
-
-### 2️⃣ ▶️ 智能影片偵測與播放
-無縫整合，提升觀影體驗。
-
-- **自動偵測**:
-  - 自動捕獲 HLS 串流 (`.m3u8`) 影片源。
-  - 偵測到影片後，立即顯示 play播放按鈕。
-  - 支援 MissAV, Jable.TV, Rou.Video 等網站。
-- **外部播放器整合**:
-  - 一鍵調用 MX Player, VLC 等第三方播放器。
-  - 享受更強大的播放控制，如手勢操作、倍速播放、字幕載入及背景播放。
-  - 點擊導航上 PLAY 同時，APP會自動複製該網址，你可以自行找到m3u8工具貼上該網址下載影片。
-  
-### 3️⃣ ♥ 智能收藏系統
-告別傳統書籤，專為影片設計。
-
-- **一鍵收藏**:
-  - 點擊愛心按鈕即可快速收藏，已收藏頁面愛心將變為實心。
-  - 自動抓取影片縮圖，建立視覺化書籤。
-- **縮圖智能抓取**:
-- **強大管理功能**:
-  - 📚 卡片式收藏列表，一目了然。
-  - 🔍 即時搜尋過濾，快速找到想看的影片。
-  - 🗑️ 支援單筆或多筆刪除。
-  - 📱 顯示完整標題 。
-
-### 4️⃣ 🔒 軍事級隱私保護
-您的秘密，我們守護。
-
-- **🔐 生物識別鎖定**:
-  - 支援指紋/人臉識別解鎖。
-  - 冷啟動時強制驗證，防止未經授權的存取。
-- **🎭 圖標偽裝系統**:
-  - 提供 4 種偽裝選項，完美隱藏應用：
-    - 📱 `JAV Browser` - 原始外觀
-    - 🔢 `Calculator` - 計算機
-    - 📝 `Notes` - 記事本
-    - 📁 `File Manager` - 檔案管理器
-  - 切換後，桌面圖標與 APP 名稱將同步變更。
-- **🙈 後台隱私保護**:
-  - 多工 (Recent Apps) 畫面顯示為空白，防止內容洩漏。
-  - 自動阻止系統截圖與螢幕錄影。
-
-### 5️⃣ 🔍 便捷搜尋導航
-- **統一搜尋介面**: 在首頁搜尋框輸入關鍵字，即時顯示搜尋建議。
-- **快速導航**: 提供一鍵前往 MissAV, Jable.TV, Rou.Video 的快捷按鈕。
+**JAV Browser fixes all of it.**
 
 ---
 
-## 🎬 使用場景
-
-- **場景 1：純淨瀏覽**
-  `開啟 APP` → `點擊「Go to MissAV」` → `自動遮蔽可能的廣告` → `享受純淨瀏覽`
-
-- **場景 2：收藏管理**
-  `瀏覽喜歡的影片` → `點擊 ♡ 收藏` → `自動抓取縮圖` → `點擊 📚 查看收藏` → `搜尋框快速找片` → `一鍵跳轉觀看`
-
-- **場景 3：外部播放**
-  `進入影片頁面` → `等待綠色播放按鈕出現` → `點擊 ▶ Play` → `選擇 MX Player` → `享受高品質播放體驗`
-
-- **場景 4：隱私保護**
-  `進入設定` → `開啟應用鎖` → `指紋驗證` → `選擇「Calculator」圖標` → `完美偽裝` → `多工畫面顯示空白` → `隱私滿分`
+# 🌟 **Core Features**
 
 ---
 
-## 💎 獨特優勢
+## 1️⃣ 🛡️ Advanced Multi-Layer Ad Reduction
 
-| 功能 | JAV Browser | 一般瀏覽器 |
-| :--- | :---: | :---: |
-| **部分廣告遮蔽** | ✅ 智能多層攔截 | ❌ 需安裝插件 |
-| **影片偵測** | ✅ 自動偵測 + 外部播放 | ❌ 無整合 |
-| **收藏系統** | ✅ 縮圖 + 搜尋 | ❌ 僅書籤 |
-| **應用鎖定** | ✅ 生物識別 | ❌ 無保護 |
-| **圖標偽裝** | ✅ 4 種選擇 | ❌ 無法更改 |
-| **後台隱私** | ✅ 多工畫面空白 | ❌ 內容可見 |
-| **截圖保護** | ✅ 自動防護 | ❌ 無保護 |
+* **Network-level blocking** – stops ad requests before loading
+* **DOM cleanup engine** – removes intrusive elements in real time
+* **Auto-close logic** – detects and closes pop-ups automatically
+* **Recurring scan** – cleans new ad elements every second
 
 ---
 
-## 🚀 立即開始
+## 2️⃣ ▶️ Smart Video Detection & External Player Integration
 
-#### 1. 下載安裝
-- 點擊 [下載 APK](https://github.com/fekilooo/javbrowser/releases/) (請替換成您的下載連結)
-- 在您的 Android 裝置上，允許「安裝未知來源的應用」。
-- 點擊下載的 APK 檔案進行安裝。
+Automatically enhances your viewing experience:
 
-#### 2. 啟動應用
-- 點擊桌面圖標，開始您的純淨瀏覽之旅。
+* **Auto-detects**:
 
-#### 3. 設定隱私 (可選)
-- 點擊 `⚙️` 進入設定頁面。
-- 開啟「應用鎖」並設定生物識別。
-- 選擇您喜歡的「偽裝圖標」。
+  * HLS streams (`.m3u8`)
+  * Video containers on supported sites
+  * Works with MISSAV, JABLE.TV, ROU.VIDEO
 
-第一次下載的，需要更新去廣告代碼 ，點開右上角齒輪，滑到最下方點更新
+* **External Player Support**:
 
+  * One-tap launch into **MX Player**, **VLC**, etc.
+  * Better gesture control, advanced playback, subtitles, background mode
+  * When tapping the PLAY button, the app **auto-copies the video URL**, allowing easy download using any M3U8 tool.
 
 ---
 
-## 🛠️ 系統需求
-- **Android**: 7.0 (Nougat) 或更高版本
-- **記憶體**: 建議 2GB RAM 以上
-- **硬體**: 支援生物識別感應器 (指紋/人臉)
+## 3️⃣ ♥ Smart Visual Bookmark System
 
-## ✅ 支援網站
-- MissAV (`missav.ws`)
-- Jable.TV (`jable.tv`)
-- Rou.Video (`rou.video`)
+Purpose-built for video collectors.
 
----
-
-## 🔐 隱私承諾
-我們極度重視您的隱私，並承諾：
-- ✅ **無追蹤、無數據收集**: 我們不收集任何個人身份資訊。
-- ✅ **本地儲存**: 所有書籤和設定都儲存在您的裝置本地，絕不上傳雲端。
-- ✅ **不記錄瀏覽歷史**: 關閉應用後，不留下任何痕跡。
+* **One-tap favorite**
+* **Auto thumbnail capture**
+* **Visual card view**
+* **Instant search**
+* **Bulk delete**
+* **Full title display**
 
 ---
 
-## 💬 用戶評價
+## 4️⃣ 🔒 Military-Grade Privacy Protection
 
-> "終於不用被廣告煩死了！收藏功能超好用！" - 使用者 A
+Your privacy is our top priority.
 
-> "圖標偽裝功能太讚了，再也不怕被發現。" - 使用者 B
+### **App Lock with Biometrics**
 
-> "外部播放器整合很方便，MX Player 體驗完美。" - 使用者 C
+* Supports fingerprint / face unlock
+* Mandatory authentication on cold start
 
-> "多工畫面空白真的很貼心，隱私保護滿分！" - 使用者 D
+### **Icon Disguise System**
+
+Four launcher identities:
+
+* 📱 **JAV Browser** (default)
+* 🔢 **Calculator**
+* 📝 **Notes**
+* 📁 **File Manager**
+
+### **Background Privacy**
+
+* Recent Apps screen shows **blank view**
+* Screenshots & screen recording **automatically disabled**
 
 ---
 
-## 📱 立即下載
-### JAV Browser - 您的私密瀏覽夥伴
-🔒 隱私保護 | 🛡️ 部分廣告遮蔽 | ♥ 智能收藏
+## 5️⃣ 🔍 Quick Navigation & Integrated Search
 
-## ⚠️ 使用須知
-- 本應用僅供合法成年人於私人空間內使用。
-- 請嚴格遵守您所在地的法律法規。
-- 理性使用，保護個人隱私。
+* Unified search bar with instant suggestions
+* One-tap shortcuts to **MISSAV**, **JABLE.TV**, **ROU.VIDEO**
 
-<p align="center"><strong>JAV Browser - 讓觀影體驗回歸純粹 ✨</strong></p>
+---
+
+# 🎬 **Usage Scenarios**
+
+### **Scenario 1 – Clean Browsing**
+
+Open app → Go to site → Ads minimized → Watch comfortably
+
+### **Scenario 2 – Smart Favorites**
+
+Browse → Tap ❤️ → Thumbnail auto-captured → Find later via search
+
+### **Scenario 3 – External Player Playback**
+
+Enter video → Wait for green Play button → Tap → Choose MX Player
+
+### **Scenario 4 – Privacy Mode**
+
+Settings → Enable App Lock → Switch to “Calculator” icon → Safe and invisible
+
+---
+
+# 💎 **Feature Comparison**
+
+| Feature             |           JAV Browser           |    Standard Browser    |
+| ------------------- | :-----------------------------: | :--------------------: |
+| Partial Ad Removal  |      ✅ Multi-layer blocking     |    ❌ Plugin required   |
+| Video Detection     | ✅ Auto-detect + External Player |     ❌ Not supported    |
+| Video Bookmarking   |       ✅ Thumbnail + Search      | ❌ Basic bookmarks only |
+| App Lock            |           ✅ Biometrics          |     ❌ Not available    |
+| Icon Disguise       |        ✅ 4 optional icons       |     ❌ Not possible     |
+| Recent Apps Privacy |          ✅ Blank screen         |    ❌ Content visible   |
+| Screenshot Block    |           ✅ Automatic           |         ❌ None         |
+
+---
+
+# 🚀 **Getting Started**
+
+### **1. Download & Install**
+
+* Download the APK from:
+  👉 **[Releases Page](https://github.com/fekilooo/javbrowser/releases/)**
+* Enable *“Install Unknown Apps”* on your Android device
+* Install and open the app
+
+### **2. First-Time Setup**
+
+To ensure latest ad-blocking rules:
+`Settings → Scroll to bottom → Update Rule`
+
+---
+
+# 🛠️ **Requirements**
+
+* **Android** 7.0+
+* **RAM** 2GB+ recommended
+* **Biometric hardware** (optional)
+
+---
+
+# 🌐 **Supported Sites**
+
+* **MISSAV** (`missav.ws`)
+* **JABLE.TV** (`jable.tv`)
+* **ROU.VIDEO** (`rou.video`)
+
+---
+
+# 🔐 **Privacy Commitment**
+
+We strictly guarantee:
+
+* **No tracking, no analytics, no data collection**
+* **All bookmarks & settings stored locally**
+* **No browsing history saved**
+* **No data uploaded to servers—ever**
+
+---
+
+# 💬 **User Feedback**
+
+> “Finally no more annoying ads. Bookmark system is perfect.”
+> — User A
+
+> “Icon disguise is genius. No one knows what it is.”
+> — User B
+
+> “MX Player integration works flawlessly.”
+> — User C
+
+> “Blank Recent Apps screen is the best privacy feature ever.”
+> — User D
+
+---
+
+# 📥 **Download Now**
+
+### **JAV Browser – Your Private Viewing Companion**
+
+🔒 Privacy | 🛡️ Ad Reduction | ♥ Smart Bookmark Engine
+
+---
+
+# ⚠️ **Disclaimer**
+
+* For adults only, used responsibly in private environments
+* Follow all laws in your region
+* Protect your privacy at all times
+
+---
+
+<p align="center"><strong>✨ JAV Browser — Pure Viewing, Zero Noise.</strong></p>
+
+
