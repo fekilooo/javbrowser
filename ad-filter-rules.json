@@ -1,6 +1,6 @@
 {
-    "version": "2.0.3",
-    "lastUpdate": "2025-12-01T07:55:00Z",
+    "version": "2.0.4",
+    "lastUpdate": "2025-12-02T07:55:00Z",
     "rules": {
         "commonBlock": [
             "creative.myavlive.com",
@@ -35,7 +35,9 @@
             "creative-sb1.com",
             "sunnycloudstone.com",
             "xxxvjmp.com",
-            "myavlive.com"
+            "myavlive.com",
+            "snaptrckr.fun",
+            "rmhfrtnd.com"
         ],
         "networkBlock": [],
         "linkBlock": [],
