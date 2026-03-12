@@ -53,4 +53,51 @@ class FavoritesManager(context: Context) {
         }
         prefs.edit().putString(KEY_FAVORITES, jsonArray.toString()).apply()
     }
+
+    fun exportFavoritesToFile(context: Context, uri: android.net.Uri): Boolean {
+        return try {
+            val jsonString = prefs.getString(KEY_FAVORITES, "[]")
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(jsonString?.toByteArray() ?: "[]".toByteArray())
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun importFavoritesFromFile(context: Context, uri: android.net.Uri): Pair<Boolean, String> {
+        return try {
+            val jsonString = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            if (jsonString.isNullOrEmpty()) {
+                return Pair(false, "檔案為空")
+            }
+            
+            val jsonArray = JSONArray(jsonString)
+            val importedList = mutableListOf<FavoriteItem>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val thumbnailUrl = if (obj.has("thumbnail")) obj.getString("thumbnail") else null
+                importedList.add(FavoriteItem(obj.getString("title"), obj.getString("url"), thumbnailUrl))
+            }
+            
+            // 合併既有書籤（避免重複網址）
+            val currentFavorites = getFavorites().toMutableList()
+            var addedCount = 0
+            
+            importedList.forEach { importedItem ->
+                if (currentFavorites.none { it.url == importedItem.url }) {
+                    currentFavorites.add(importedItem)
+                    addedCount++
+                }
+            }
+            
+            saveFavorites(currentFavorites)
+            Pair(true, "成功匯入 ${addedCount} 筆書籤")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Pair(false, "無法解析檔案格式")
+        }
+    }
 }

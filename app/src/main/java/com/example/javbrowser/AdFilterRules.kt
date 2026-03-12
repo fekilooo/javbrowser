@@ -22,8 +22,13 @@ class AdFilterRules(private val context: Context) {
         // 預設規則（首次安裝時使用）
         private val DEFAULT_RULES = """
         {
-          "version": "2.0.0",
+          "version": "2.1.0",
           "lastUpdate": "2025-11-28T13:30:00Z",
+          "domains": {
+            "missav": "missav.ws",
+            "jable": "jable.tv",
+            "rou_video": "rouva2.xyz"
+          },
           "rules": {
             "commonBlock": [
               "creative.myavlive.com",
@@ -280,6 +285,26 @@ class AdFilterRules(private val context: Context) {
         }
     }
     
+    /**
+     * 讀取 domains 設定區塊（用於動態網域替換）
+     * 回傳格式：Map<"missav" -> "missav.ws", ...>
+     */
+    fun getDomains(): Map<String, String> {
+        return try {
+            val json = prefs.getString(KEY_RULES_JSON, DEFAULT_RULES) ?: DEFAULT_RULES
+            val jsonObject = JSONObject(json)
+            if (!jsonObject.has("domains")) return emptyMap()
+            val domainsObject = jsonObject.getJSONObject("domains")
+            val map = mutableMapOf<String, String>()
+            domainsObject.keys().forEach { key ->
+                map[key] = domainsObject.getString(key)
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
     // 導出規則為 JSON
     fun exportToJson(): String {
         return prefs.getString(KEY_RULES_JSON, DEFAULT_RULES) ?: DEFAULT_RULES

@@ -92,8 +92,8 @@ object VideoExtractor {
 
     fun extractRouVideo(html: String): String? {
         // Look for <video> tag with src attribute containing .m3u8
-        // Pattern: <video ... src="URL.m3u8?..."
-        val pattern = Pattern.compile("<video[^>]+src=\"([^\"]+\\.m3u8[^\"]*)\"", Pattern.CASE_INSENSITIVE)
+        // Pattern: <video ... src="URL.m3u8?..." OR src='...'
+        val pattern = Pattern.compile("<video[^>]+src=[\"']([^\"']+\\.m3u8[^\"']*)[\"']", Pattern.CASE_INSENSITIVE)
         val matcher = pattern.matcher(html)
         if (matcher.find()) {
             var url = matcher.group(1)
@@ -107,5 +107,80 @@ object VideoExtractor {
             }
         }
         return null
+    }
+    fun fetchBestQualityUrl(masterUrl: String, callback: (String) -> Unit) {
+        kotlin.concurrent.thread {
+            try {
+                val connection = java.net.URL(masterUrl).openConnection() as java.net.HttpURLConnection
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                
+                if (connection.responseCode == 200) {
+                    val content = connection.inputStream.bufferedReader().use { it.readText() }
+                    val lines = content.lines()
+                    
+                    var bestUrl: String? = null
+                    var maxResolution = 0
+                    
+                    for (i in lines.indices) {
+                        val line = lines[i]
+                        if (line.startsWith("#EXT-X-STREAM-INF")) {
+                            val resMatcher = Pattern.compile("RESOLUTION=(\\d+)x(\\d+)").matcher(line)
+                            if (resMatcher.find()) {
+                                val width = resMatcher.group(1)?.toInt() ?: 0
+                                val height = resMatcher.group(2)?.toInt() ?: 0
+                                val pixelCount = width * height
+                                
+                                if (pixelCount > maxResolution) {
+                                    maxResolution = pixelCount
+                                    if (i + 1 < lines.size) {
+                                        var nextLine = lines[i + 1].trim()
+                                        if (nextLine.isNotEmpty() && !nextLine.startsWith("#")) {
+                                            // Handle URL construction with URI to support relative paths and query params
+                                            try {
+                                                val masterUri = java.net.URI(masterUrl)
+                                                // Resolve relative path correctly
+                                                val nextUri = masterUri.resolve(nextLine)
+                                                
+                                                // If the new URL doesn't have query params, but the master did, inherit them
+                                                // This is a heuristic for sites that use token authentication in the URL
+                                                if (masterUri.rawQuery != null && nextUri.rawQuery == null) {
+                                                    bestUrl = nextUri.toString() + "?" + masterUri.rawQuery
+                                                } else {
+                                                    bestUrl = nextUri.toString()
+                                                }
+                                            } catch (e: Exception) {
+                                                // Fallback to simple string concatenation if URI parsing fails
+                                                if (!nextLine.startsWith("http")) {
+                                                    val baseUrl = masterUrl.substringBeforeLast("/") + "/"
+                                                    bestUrl = baseUrl + nextLine
+                                                } else {
+                                                    bestUrl = nextLine
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    val finalUrl = bestUrl ?: masterUrl
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        callback(finalUrl)
+                    }
+                } else {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        callback(masterUrl)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    callback(masterUrl)
+                }
+            }
+        }
     }
 }

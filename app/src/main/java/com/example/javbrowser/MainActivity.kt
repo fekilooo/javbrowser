@@ -17,6 +17,8 @@ import java.io.ByteArrayInputStream
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var adFilterRules: AdFilterRules
+    private lateinit var domainConfig: DomainConfig
     private lateinit var btnPlay: Button
     private lateinit var btnHome: Button
     private lateinit var btnAddFavorite: Button
@@ -47,6 +49,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         favoritesManager = FavoritesManager(this)
+        
+        adFilterRules = AdFilterRules(this)
+        domainConfig = DomainConfig(adFilterRules)
+        
+        adFilterRules.updateRulesFromCloud(AdFilterRules.DEFAULT_CLOUD_URL) { success, msg ->
+            if (success) {
+                android.util.Log.d("AdBlock", "Rules updated: $msg")
+            } else {
+                android.util.Log.e("AdBlock", "Rules update failed: $msg")
+            }
+        }
+
         privacySettings = PrivacySettings(this)
         // biometricHelper = BiometricHelper(this) // Moved to LockActivity
         
@@ -90,7 +104,8 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == REQUEST_CODE_FAVORITES && resultCode == RESULT_OK) {
             val url = data?.getStringExtra("url")
             if (url != null) {
-                webView.loadUrl(url)
+                val updatedUrl = domainConfig.updateUrlIfNeeded(url)
+                webView.loadUrl(updatedUrl)
             }
         } else if (requestCode == REQUEST_CODE_LOCK) {
             if (resultCode == RESULT_OK) {
@@ -396,7 +411,7 @@ class MainActivity : AppCompatActivity() {
                             'use strict';
 
                             // 1. 攔截彈窗與惡意跳轉邏輯
-                            var websites = ["missav.com/pop", "tsyndicate.com/api", "missav.ws/pop"];
+                            var websites = ["missav.com/pop", "tsyndicate.com/api", "${domainConfig.getMissAvDomain()}/pop"];
                             var url = window.location.href;
                             for (var i = 0; i < websites.length; i++) {
                                 // 簡單的正則匹配
@@ -710,10 +725,15 @@ class MainActivity : AppCompatActivity() {
             if (url != null && url.startsWith("http")) {
                 val title = webView.title ?: "Unknown Page"
                 val favorites = favoritesManager.getFavorites()
-                val isFavorite = favorites.any { it.url == url }
+                
+                val currentNormUrl = domainConfig.updateUrlIfNeeded(url)
+                val isFavorite = favorites.any { domainConfig.updateUrlIfNeeded(it.url) == currentNormUrl }
                 
                 if (isFavorite) {
-                    favoritesManager.removeFavorite(url)
+                    val itemToRemove = favorites.find { domainConfig.updateUrlIfNeeded(it.url) == currentNormUrl }
+                    if (itemToRemove != null) {
+                        favoritesManager.removeFavorite(itemToRemove.url)
+                    }
                     Toast.makeText(this, "已從收藏移除", Toast.LENGTH_SHORT).show()
                     btnAddFavorite.text = "♡"
                 } else {
@@ -765,7 +785,8 @@ class MainActivity : AppCompatActivity() {
         val url = webView.url
         if (url != null && url.startsWith("http")) {
             val favorites = favoritesManager.getFavorites()
-            val isFavorite = favorites.any { it.url == url }
+            val currentNormUrl = domainConfig.updateUrlIfNeeded(url)
+            val isFavorite = favorites.any { domainConfig.updateUrlIfNeeded(it.url) == currentNormUrl }
             btnAddFavorite.text = if (isFavorite) "♥" else "♡"
         } else {
             btnAddFavorite.text = "♡"
@@ -941,7 +962,7 @@ class MainActivity : AppCompatActivity() {
                 
                 <div class="divider">或直接前往</div>
                 
-                <a href="javascript:Android.navigateToUrl('https://missav.ws/')">Go to MissAV</a>
+                <a href="javascript:Android.navigateToUrl('${domainConfig.getMissAvBaseUrl()}')">Go to MissAV</a>
                 <a href="javascript:Android.navigateToUrl('https://jable.tv/hot/')">Go to Jable.TV</a>
                 <a href="javascript:Android.navigateToUrl('https://rouva2.xyz/home')">Go to Rou.Video</a>
                 
@@ -961,7 +982,7 @@ class MainActivity : AppCompatActivity() {
                             searchJable.textContent = '在 Jable.TV 搜尋: ' + keyword;
                             
                             // Update URLs
-                            searchMissAV.href = 'https://missav.ws/search/' + encodeURIComponent(keyword);
+                            searchMissAV.href = 'https://${domainConfig.getMissAvDomain()}/search/' + encodeURIComponent(keyword);
                             searchJable.href = 'https://jable.tv/search/' + encodeURIComponent(keyword) + '/';
                         } else {
                             searchResults.classList.remove('show');

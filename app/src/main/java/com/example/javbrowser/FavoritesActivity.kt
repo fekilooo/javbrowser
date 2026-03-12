@@ -17,9 +17,16 @@ class FavoritesActivity : AppCompatActivity() {
     private lateinit var tvEmpty: TextView
     private lateinit var etSearch: android.widget.EditText
     private lateinit var btnHome: android.widget.Button
+    private lateinit var btnImport: android.widget.Button
+    private lateinit var btnExport: android.widget.Button
     private lateinit var adapter: FavoritesAdapter
     private lateinit var favoritesManager: FavoritesManager
     private var allFavorites: List<FavoriteItem> = emptyList()
+
+    companion object {
+        private const val REQUEST_CODE_EXPORT = 2001
+        private const val REQUEST_CODE_IMPORT = 2002
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +39,8 @@ class FavoritesActivity : AppCompatActivity() {
         tvEmpty = findViewById(R.id.tv_empty)
         etSearch = findViewById(R.id.et_search)
         btnHome = findViewById(R.id.btn_home)
+        btnImport = findViewById(R.id.btn_import)
+        btnExport = findViewById(R.id.btn_export)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FavoritesAdapter(mutableListOf()) { item ->
@@ -45,12 +54,52 @@ class FavoritesActivity : AppCompatActivity() {
 
         setupSearch()
         setupHomeButton()
+        setupBackupButtons()
         loadFavorites()
     }
     
     private fun setupHomeButton() {
         btnHome.setOnClickListener {
             finish() // Go back to MainActivity
+        }
+    }
+    
+    private fun setupBackupButtons() {
+        btnExport.setOnClickListener {
+            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/json"
+                putExtra(Intent.EXTRA_TITLE, "javbrowser_favorites.json")
+            }
+            startActivityForResult(intent, REQUEST_CODE_EXPORT)
+        }
+
+        btnImport.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/json"
+            }
+            startActivityForResult(intent, REQUEST_CODE_IMPORT)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK && data?.data != null) {
+            when (requestCode) {
+                REQUEST_CODE_EXPORT -> {
+                    val success = favoritesManager.exportFavoritesToFile(this, data.data!!)
+                    val msg = if (success) "匯出成功" else "匯出失敗"
+                    android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+                REQUEST_CODE_IMPORT -> {
+                    val result = favoritesManager.importFavoritesFromFile(this, data.data!!)
+                    android.widget.Toast.makeText(this, result.second, android.widget.Toast.LENGTH_SHORT).show()
+                    if (result.first) {
+                        loadFavorites()
+                    }
+                }
+            }
         }
     }
     
