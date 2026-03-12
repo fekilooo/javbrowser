@@ -1,6 +1,11 @@
 {
-    "version": "2.0.4",
-    "lastUpdate": "2025-12-02T07:55:00Z",
+    "version": "2.1.0",
+    "lastUpdate": "2026-03-12T13:30:00Z",
+    "domains": {
+        "missav": "missav.ws",
+        "jable": "jable.tv",
+        "rou_video": "rouva2.xyz"
+    },
     "rules": {
         "commonBlock": [
             "creative.myavlive.com",
