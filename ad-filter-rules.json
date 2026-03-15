@@ -45,9 +45,13 @@
             "rmhfrtnd.com",
             "preferencenail.com"
         ],
-        "networkBlock": [],
+        "networkBlock": [
+            "sunnycloudstone.com"
+        ],
         "linkBlock": [],
-        "iframeBlock": [],
+        "iframeBlock": [
+            "sunnycloudstone.com"
+        ],
         "redirectBlock": []
     }
 }
