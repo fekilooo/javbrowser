@@ -1,6 +1,6 @@
 {
-    "version": "2.3.0",
-    "lastUpdate": "2026-03-15T23:29:00Z",
+    "version": "2.3.1",
+    "lastUpdate": "2026-03-15T23:30:00Z",
     "domains": {
         "missav": "missav.ai",
         "jable": "jable.tv",
@@ -46,8 +46,7 @@
             "preferencenail.com"
         ],
         "networkBlock": [
-            "sunnycloudstone.com",
-            "ra12.xyz"
+            "sunnycloudstone.com"
         ],
         "linkBlock": [],
         "iframeBlock": [
