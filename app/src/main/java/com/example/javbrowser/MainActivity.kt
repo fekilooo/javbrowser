@@ -650,24 +650,44 @@ class MainActivity : AppCompatActivity() {
         
         // Special handling for rou.video - monitor video src continuously
         if (url.contains("rou.video") || url.contains("rouva")) {
-            // Inject JS to monitor video element for src changes
+            // Inject JS to monitor video element for src changes and intercept network requests
             val monitorJs = """
                 (function() {
                     if (window.rouVideoMonitor) return; // Already monitoring
                     window.rouVideoMonitor = true;
                     
+                    // 1. Monitor <video> tag (for older implementation)
                     var checkInterval = setInterval(function() {
                         var video = document.querySelector('video');
-                        if (video && video.src && video.src.startsWith('http')) {
+                        if (video && video.src && video.src.startsWith('http') && video.src.indexOf('.m3u8') !== -1) {
                             Android.onVideoFound(video.src);
                             clearInterval(checkInterval);
                         }
                     }, 1000); // Check every second
                     
                     // Stop checking after 30 seconds
-                    setTimeout(function() {
-                        clearInterval(checkInterval);
-                    }, 30000);
+                    setTimeout(function() { clearInterval(checkInterval); }, 30000);
+
+                    // 2. Intercept Fetch API to sniff .m3u8
+                    var originalFetch = window.fetch;
+                    window.fetch = async function() {
+                        var fetchUrl = arguments[0];
+                        if (typeof fetchUrl === 'string' && fetchUrl.indexOf('.m3u8') !== -1) {
+                            Android.onVideoFound(fetchUrl);
+                        } else if (fetchUrl && fetchUrl.url && fetchUrl.url.indexOf('.m3u8') !== -1) {
+                            Android.onVideoFound(fetchUrl.url);
+                        }
+                        return originalFetch.apply(this, arguments);
+                    };
+
+                    // 3. Intercept XHR to sniff .m3u8
+                    var originalXhrOpen = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function(method, url) {
+                        if (typeof url === 'string' && url.indexOf('.m3u8') !== -1) {
+                            Android.onVideoFound(url);
+                        }
+                        return originalXhrOpen.apply(this, arguments);
+                    };
                 })();
             """.trimIndent()
             
