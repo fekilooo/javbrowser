@@ -405,7 +405,7 @@ class MainActivity : AppCompatActivity() {
                 // view?.evaluateJavascript(removeAdsJs, null) // DISABLED FOR TESTING
 
                 // New MISSAV Ad Blocking Logic
-                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true || url?.contains("rouva2.xyz") == true) {
+                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true || url?.contains("rouva") == true) {
                     val missavAdBlockJs = """
                         (function() {
                             'use strict';
@@ -456,11 +456,12 @@ class MainActivity : AppCompatActivity() {
                                     var observer = new MutationObserver(function(mutations) {
                                         // Safeguard function
                                         function isSafeToRemove(element) {
-                                            if (!element) return false;
+                                            if (!element || !element.tagName) return false;
+                                            var tag = element.tagName.toLowerCase();
+                                            if (tag === 'html' || tag === 'body' || tag === 'video' || tag === 'iframe') return false;
                                             if (element.id === 'player') return false;
-                                            if (element.classList.contains('video-js')) return false;
-                                            if (element.classList.contains('vjs-tech')) return false;
-                                            if (element.querySelector && (element.querySelector('#player') || element.querySelector('.video-js'))) return false;
+                                            if (element.classList && (element.classList.contains('video-js') || element.classList.contains('vjs-tech'))) return false;
+                                            if (element.querySelector && (element.querySelector('video') || element.querySelector('iframe') || element.querySelector('#player') || element.querySelector('.video-js'))) return false;
                                             return true;
                                         }
 
@@ -648,7 +649,7 @@ class MainActivity : AppCompatActivity() {
         // MissAV: usually has UUID or just check all pages on missav domain
         
         // Special handling for rou.video - monitor video src continuously
-        if (url.contains("rou.video") || url.contains("rouva2.xyz")) {
+        if (url.contains("rou.video") || url.contains("rouva")) {
             // Inject JS to monitor video element for src changes
             val monitorJs = """
                 (function() {
@@ -963,8 +964,8 @@ class MainActivity : AppCompatActivity() {
                 <div class="divider">或直接前往</div>
                 
                 <a href="javascript:Android.navigateToUrl('${domainConfig.getMissAvBaseUrl()}')">Go to MissAV</a>
-                <a href="javascript:Android.navigateToUrl('https://jable.tv/hot/')">Go to Jable.TV</a>
-                <a href="javascript:Android.navigateToUrl('https://rouva2.xyz/home')">Go to Rou.Video</a>
+                <a href="javascript:Android.navigateToUrl('https://${domainConfig.getJableDomain()}/')">Go to Jable</a>
+                <a href="javascript:Android.navigateToUrl('https://${domainConfig.getRouVideoDomain()}/home')">Go to Rou.Video</a>
                 
                 <div class="help-button" onclick="showHelp()">?</div>
 

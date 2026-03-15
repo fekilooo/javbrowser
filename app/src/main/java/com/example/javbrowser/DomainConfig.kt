@@ -41,7 +41,7 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
 
     fun getJableDomain(): String = adFilterRules.getDomains()["jable"] ?: "jable.tv"
     
-    fun getRouVideoDomain(): String = adFilterRules.getDomains()["rou_video"] ?: "rouva2.xyz"
+    fun getRouVideoDomain(): String = adFilterRules.getDomains()["rou_video"] ?: "rouva3.xyz"
 
     /**
      * 更新 URL 中的網域為最新網域 (如果是已知的被封鎖網域)
@@ -56,7 +56,7 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
                 return uri.buildUpon().authority(getMissAvDomain()).build().toString()
             } else if (host.contains("jable.", ignoreCase = true)) {
                 return uri.buildUpon().authority(getJableDomain()).build().toString()
-            } else if (host.contains("rou.video", ignoreCase = true) || host.contains("rouva2.", ignoreCase = true)) {
+            } else if (host.contains("rou.video", ignoreCase = true) || host.contains("rouva", ignoreCase = true)) {
                 return uri.buildUpon().authority(getRouVideoDomain()).build().toString()
             }
         } catch (e: Exception) {
