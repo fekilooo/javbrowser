@@ -177,7 +177,7 @@ To ensure latest ad-blocking rules:
 * **MISSAV** (`missav.ws`)
 * **JABLE.TV** (`jable.tv`)
 * **ROU.VIDEO** (`rou.video`)
-* **AVJOY** ('AVJOY.me')
+* **AVJOY** (`AVJOY.me`)
 
 ---
 
