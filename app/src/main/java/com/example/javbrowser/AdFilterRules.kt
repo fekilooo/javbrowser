@@ -27,7 +27,8 @@ class AdFilterRules(private val context: Context) {
           "domains": {
             "missav": "missav.ws",
             "jable": "jable.tv",
-            "rou_video": "rouva3.xyz"
+            "rou_video": "rouva3.xyz",
+            "avjoy": "avjoy.me"
           },
           "rules": {
             "commonBlock": [

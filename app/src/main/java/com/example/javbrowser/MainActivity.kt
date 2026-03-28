@@ -29,7 +29,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var privacySettings: PrivacySettings
     private lateinit var biometricHelper: BiometricHelper
     private var currentVideoUrl: String? = null
+    private var currentVideoReferer: String? = null
     private var videoFoundToastShown = false
+    private var videoProxyServer: VideoProxyServer? = null
+    private var cachedBlockList: Set<String> = emptySet()
     private var isUnlocked = false
     private var isFreshStart = true
     private val REQUEST_CODE_FAVORITES = 1001
@@ -41,6 +44,10 @@ class MainActivity : AppCompatActivity() {
     private var timeoutRunnable: Runnable? = null
     private val TIMEOUT_DURATION = 30000L // 30 seconds
     private var backPressedTime: Long = 0
+    // 儲存每個 URL 對應的滾動位置，格式為 url -> Pair(scrollX, scrollY)
+    private val scrollPositionMap = HashMap<String, Pair<Int, Int>>()
+    // 標記下一次 onPageFinished 是否需要恢復滾動位置（因為是 goBack 觸發的）
+    private var pendingScrollRestoreUrl: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,13 +56,26 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         favoritesManager = FavoritesManager(this)
-        
+
+        // Start local proxy for CDN-protected video (e.g. avjoy.me)
+        try {
+            videoProxyServer = VideoProxyServer()
+            videoProxyServer?.start()
+        } catch (e: Exception) {
+            android.util.Log.e("VideoProxy", "Failed to start proxy: ${e.message}")
+        }
+
         adFilterRules = AdFilterRules(this)
         domainConfig = DomainConfig(adFilterRules)
-        
+
+        // 載入初始封鎖清單（從 SharedPreferences 快取）
+        cachedBlockList = adFilterRules.getCommonBlockList().toSet()
+
         adFilterRules.updateRulesFromCloud(AdFilterRules.DEFAULT_CLOUD_URL) { success, msg ->
             if (success) {
-                android.util.Log.d("AdBlock", "Rules updated: $msg")
+                // 雲端規則更新成功，刷新快取
+                cachedBlockList = adFilterRules.getCommonBlockList().toSet()
+                android.util.Log.d("AdBlock", "Rules updated: $msg, total: ${cachedBlockList.size}")
             } else {
                 android.util.Log.e("AdBlock", "Rules update failed: $msg")
             }
@@ -83,6 +103,52 @@ class MainActivity : AppCompatActivity() {
         setupSettingsButton()
 
         loadLandingPage()
+        
+        // Handle URL if opened via external app intent
+        handleIncomingIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent == null) return
+
+        var urlToLoad: String? = null
+
+        if (intent.action == Intent.ACTION_VIEW) {
+            val data: Uri? = intent.data
+            if (data != null) {
+                urlToLoad = data.toString()
+            }
+        } else if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (sharedText != null) {
+                urlToLoad = extractUrl(sharedText)
+                if (urlToLoad == null) {
+                    runOnUiThread {
+                        Toast.makeText(this, "無法從分享的內容中找到網址", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        if (urlToLoad != null) {
+            val updatedUrl = domainConfig.updateUrlIfNeeded(urlToLoad)
+            // Use post to ensure webview is fully initialized
+            webView.post {
+                webView.loadUrl(updatedUrl)
+            }
+        }
+    }
+
+    private fun extractUrl(text: String): String? {
+        val urlRegex = "(https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])".toRegex()
+        val matchResult = urlRegex.find(text)
+        return matchResult?.value
     }
 
     // ... (rest of the file)
@@ -188,6 +254,18 @@ class MainActivity : AppCompatActivity() {
                     return true
                 }
                 
+                // 離開當前頁面前，先把目前的滾動位置存入 sessionStorage（以當前頁 URL 為 key）
+                // 這樣按返回鍵回來時，onPageFinished 才能正確恢復位置
+                view?.evaluateJavascript("""
+                    (function() {
+                        var sy = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+                        if (sy > 0) {
+                            var key = 'scrollPos__' + window.location.href;
+                            sessionStorage.setItem(key, sy);
+                        }
+                    })();
+                """.trimIndent(), null)
+                
                 // Allow navigation to target URLs
                 return false
             }
@@ -203,21 +281,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 */
 
-                // Block specific ad script source
-                if (lowerUrl.contains("creative.myavlive.com") || 
-                    lowerUrl.contains("silent-basis.pro") || 
-                    lowerUrl.contains("ptelastaxo.com") ||
-                    lowerUrl.contains("magsrv.com") ||
-                    lowerUrl.contains("afcdn.net") ||
-                    lowerUrl.contains("siscprts.com") ||
-                    lowerUrl.contains("exoclick.com") ||
-                    lowerUrl.contains("go.mnaspm.com") ||
-                    lowerUrl.contains("smartpop") ||
-                    lowerUrl.contains("tsyndicate.com") ||
-                    lowerUrl.contains("ad-provider.js") ||
-                    lowerUrl.contains("shopee") || 
-                    lowerUrl.contains("shp.ee") || 
-                    lowerUrl.contains("lazada")) {
+                // Block ads dynamically from JSON rules (commonBlock)
+                if (cachedBlockList.any { lowerUrl.contains(it) }) {
                     return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("".toByteArray()))
                 }
                 
@@ -244,6 +309,7 @@ class MainActivity : AppCompatActivity() {
                 super.onPageStarted(view, url, favicon)
                 btnPlay.visibility = View.GONE
                 currentVideoUrl = null
+                currentVideoReferer = null
                 videoFoundToastShown = false
                 
                 // Show progress bar and start timeout
@@ -254,12 +320,41 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                super.doUpdateVisitedHistory(view, url, isReload)
+                // 頁面歷史更新時（包含 goBack），重設恢復目標 URL
+                // pendingScrollRestoreUrl 在 onBackPressed 中已設定好，這裡不需要額外處理
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 
                 // Hide progress bar and cancel timeout
                 progressBar.visibility = View.GONE
                 cancelLoadTimeout()
+
+                // 利用網頁自身的 sessionStorage，以「自己的 URL」作為 key 恢復滾動位置
+                // shouldOverrideUrlLoading 離開時已儲存；onBackPressed 返回時同樣儲存
+                val restoreScript = """
+                    (function() {
+                        var key = 'scrollPos__' + window.location.href;
+                        var savedY = sessionStorage.getItem(key);
+                        if (savedY) {
+                            var sy = parseInt(savedY, 10);
+                            if (sy > 0) {
+                                setTimeout(function() {
+                                    window.scrollTo(0, sy);
+                                    document.documentElement.scrollTop = sy;
+                                    document.body.scrollTop = sy;
+                                    sessionStorage.removeItem(key);
+                                }, 300);
+                            } else {
+                                sessionStorage.removeItem(key);
+                            }
+                        }
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(restoreScript, null)
                 
                 // Do NOT reset btnPlay or currentVideoUrl here, as video might have been found during load
                 
@@ -405,7 +500,7 @@ class MainActivity : AppCompatActivity() {
                 // view?.evaluateJavascript(removeAdsJs, null) // DISABLED FOR TESTING
 
                 // New MISSAV Ad Blocking Logic
-                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true || url?.contains("rouva") == true) {
+                if (url?.contains("missav") == true || url?.contains("jable") == true || url?.contains("rou.video") == true || url?.contains("rouva") == true || url?.contains("avjoy.me") == true) {
                     val missavAdBlockJs = """
                         (function() {
                             'use strict';
@@ -493,9 +588,17 @@ class MainActivity : AppCompatActivity() {
 
                                                     // Check for dynamic ad links
                                                     if (node.matches && (node.matches('a[href*="ra12.xyz"]') || node.matches('a[href*="rdz1.xyz"]'))) {
-                                                        var container = node.closest('.grid') || node.closest('div');
-                                                        if (container && isSafeToRemove(container)) {
-                                                            container.remove();
+                                                        // 安全容器查找：最多往上 3 層，且確保容器不含影片內容連結
+                                                        var safeContainer = null;
+                                                        var cur = node.parentElement;
+                                                        for (var _i = 0; _i < 3 && cur; _i++) {
+                                                            // 若容器含有影片內容連結，停止往上找（避免誤刪影片列表）
+                                                            if (cur.querySelector && cur.querySelector('a[href^="/v/"]')) break;
+                                                            safeContainer = cur;
+                                                            cur = cur.parentElement;
+                                                        }
+                                                        if (safeContainer && isSafeToRemove(safeContainer)) {
+                                                            safeContainer.remove();
                                                         } else {
                                                             node.remove();
                                                         }
@@ -504,9 +607,16 @@ class MainActivity : AppCompatActivity() {
                                                     // Check children of added node for ad links
                                                     var dynamicAdLinks = node.querySelectorAll('a[href*="ra12.xyz"], a[href*="rdz1.xyz"]');
                                                     dynamicAdLinks.forEach(link => {
-                                                        var container = link.closest('.grid') || link.closest('div');
-                                                        if (container && isSafeToRemove(container)) {
-                                                            container.remove();
+                                                        // 安全容器查找：最多往上 3 層，且確保容器不含影片內容連結
+                                                        var safeContainer = null;
+                                                        var cur = link.parentElement;
+                                                        for (var _j = 0; _j < 3 && cur; _j++) {
+                                                            if (cur.querySelector && cur.querySelector('a[href^="/v/"]')) break;
+                                                            safeContainer = cur;
+                                                            cur = cur.parentElement;
+                                                        }
+                                                        if (safeContainer && isSafeToRemove(safeContainer)) {
+                                                            safeContainer.remove();
                                                         } else {
                                                             link.remove();
                                                         }
@@ -567,10 +677,18 @@ class MainActivity : AppCompatActivity() {
                                         });
                                         
                                         // Generic ad links and their containers
+                                        // 注意：不可使用 closest('.grid')，會誤刪整個影片列表！
+                                        // 改為最多往上 3 層找容器，且確保容器不含影片內容連結
                                         document.querySelectorAll('a[href*="ra12.xyz"], a[href*="rdz1.xyz"]').forEach(link => {
-                                            var container = link.closest('.grid') || link.closest('div');
-                                            if (container && isSafeToRemove(container)) {
-                                                container.remove();
+                                            var safeContainer = null;
+                                            var cur = link.parentElement;
+                                            for (var _k = 0; _k < 3 && cur; _k++) {
+                                                if (cur.querySelector && cur.querySelector('a[href^="/v/"]')) break;
+                                                safeContainer = cur;
+                                                cur = cur.parentElement;
+                                            }
+                                            if (safeContainer && isSafeToRemove(safeContainer)) {
+                                                safeContainer.remove();
                                             } else {
                                                 link.remove();
                                             }
@@ -648,9 +766,8 @@ class MainActivity : AppCompatActivity() {
         // Jable: /videos/
         // MissAV: usually has UUID or just check all pages on missav domain
         
-        // Special handling for rou.video - monitor video src continuously
+        // Inject JS to monitor video element for src changes and intercept network requests for rou.video
         if (url.contains("rou.video") || url.contains("rouva")) {
-            // Inject JS to monitor video element for src changes and intercept network requests
             val monitorJs = """
                 (function() {
                     if (window.rouVideoMonitor) return; // Already monitoring
@@ -668,53 +785,61 @@ class MainActivity : AppCompatActivity() {
                     // Stop checking after 30 seconds
                     setTimeout(function() { clearInterval(checkInterval); }, 30000);
 
-                    // 2. Intercept Fetch API to sniff .m3u8
+                    // 2. Intercept Fetch API to sniff .m3u8 or index.jpg (new)
                     var originalFetch = window.fetch;
                     window.fetch = async function() {
                         var fetchUrl = arguments[0];
-                        if (typeof fetchUrl === 'string' && fetchUrl.indexOf('.m3u8') !== -1) {
-                            Android.onVideoFound(fetchUrl);
-                        } else if (fetchUrl && fetchUrl.url && fetchUrl.url.indexOf('.m3u8') !== -1) {
-                            Android.onVideoFound(fetchUrl.url);
+                        var urlStr = typeof fetchUrl === 'string' ? fetchUrl : (fetchUrl && fetchUrl.url ? fetchUrl.url : '');
+                        if (urlStr.indexOf('.m3u8') !== -1) {
+                            Android.onVideoFound(urlStr);
+                        } else if (urlStr.indexOf('index.jpg') !== -1 && urlStr.indexOf('exp=') !== -1 && urlStr.indexOf('auth=') !== -1) {
+                            Android.onVideoFound(urlStr.replace('index.jpg', 'index.m3u8'));
                         }
                         return originalFetch.apply(this, arguments);
                     };
 
-                    // 3. Intercept XHR to sniff .m3u8
+                    // 3. Intercept XHR to sniff
                     var originalXhrOpen = XMLHttpRequest.prototype.open;
                     XMLHttpRequest.prototype.open = function(method, url) {
-                        if (typeof url === 'string' && url.indexOf('.m3u8') !== -1) {
-                            Android.onVideoFound(url);
+                        if (typeof url === 'string') {
+                            if (url.indexOf('.m3u8') !== -1) {
+                                Android.onVideoFound(url);
+                            } else if (url.indexOf('index.jpg') !== -1 && url.indexOf('exp=') !== -1 && url.indexOf('auth=') !== -1) {
+                                Android.onVideoFound(url.replace('index.jpg', 'index.m3u8'));
+                            }
                         }
                         return originalXhrOpen.apply(this, arguments);
                     };
                 })();
             """.trimIndent()
-            
-            // Add JS interface to receive callback
-            // webView.addJavascriptInterface(..., "Android") // MOVED TO setupWebView()
-            
             webView.evaluateJavascript(monitorJs, null)
-        } else {
-            // For other sites, parse HTML
-            webView.evaluateJavascript("(function() { return document.documentElement.outerHTML; })();") { html ->
-                // html is a JSON string, e.g. "\u003Chtml>..."
-                // We need to unescape it.
-                val rawHtml = unescapeJsString(html)
-                
-                var extractedUrl: String? = null
-                
-                if (url.contains("jable.tv")) {
-                    extractedUrl = VideoExtractor.extractJable(rawHtml)
-                } else if (url.contains("missav")) {
-                    extractedUrl = VideoExtractor.extractMissAV(rawHtml)
-                }
-
+        }
+        
+        // Also parse HTML to extract URL instantly for all supported sites
+        webView.evaluateJavascript("(function() { return document.documentElement.outerHTML; })();") { html ->
+            // html is a JSON string, e.g. "\u003Chtml>..."
+            // We need to unescape it.
+            val rawHtml = unescapeJsString(html)
+            
+            var extractedUrl: String? = null
+            
+            if (url.contains("jable.tv")) {
+                extractedUrl = VideoExtractor.extractJable(rawHtml)
+            } else if (url.contains("missav")) {
+                extractedUrl = VideoExtractor.extractMissAV(rawHtml)
+            } else if (url.contains("rou.video") || url.contains("rouva")) {
+                extractedUrl = VideoExtractor.extractRouVideo(rawHtml)
+            } else if (url.contains("avjoy.me")) {
+                extractedUrl = VideoExtractor.extractAvJoy(rawHtml)
                 if (extractedUrl != null) {
-                    currentVideoUrl = extractedUrl
-                    btnPlay.visibility = View.VISIBLE
-                    // Toast.makeText(this, R.string.video_found, Toast.LENGTH_SHORT).show()
+                    currentVideoReferer = "https://avjoy.me/"
                 }
+            }
+
+            if (extractedUrl != null) {
+                currentVideoUrl = extractedUrl
+                btnPlay.visibility = View.VISIBLE
+                // Toast.makeText(this, R.string.video_found, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -818,21 +943,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun playVideo(url: String) {
         try {
-            // Copy URL to clipboard
+            val referer = currentVideoReferer
+            val playUrl: String
+
+            if (referer != null && videoProxyServer != null) {
+                // Use local proxy for CDN-protected sites (e.g. avjoy.me)
+                // Proxy will attach Referer, Cookie, Sec-Fetch-* headers automatically
+                val cookieManager = android.webkit.CookieManager.getInstance()
+                val cookies = cookieManager.getCookie(referer) ?: ""
+                playUrl = videoProxyServer!!.buildProxyUrl(url, referer, cookies)
+            } else {
+                playUrl = url
+            }
+
+            // Copy real URL to clipboard (not proxy URL)
             val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("Video URL", url)
             clipboard.setPrimaryClip(clip)
             Toast.makeText(this, "Video URL copied to clipboard", Toast.LENGTH_SHORT).show()
 
+            val mimeType = if (url.contains(".mp4")) "video/mp4" else "video/*"
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(Uri.parse(url), "video/*") // Or application/x-mpegURL
-            // Try to find a handler
+            intent.setDataAndType(Uri.parse(playUrl), mimeType)
+
             if (intent.resolveActivity(packageManager) != null) {
                 startActivity(intent)
             } else {
-                // Try specifically for m3u8 type if generic video fails, or just toast
-                intent.setDataAndType(Uri.parse(url), "application/x-mpegURL")
-                 if (intent.resolveActivity(packageManager) != null) {
+                intent.setDataAndType(Uri.parse(playUrl), "application/x-mpegURL")
+                if (intent.resolveActivity(packageManager) != null) {
                     startActivity(intent)
                 } else {
                     Toast.makeText(this, R.string.error_no_player, Toast.LENGTH_LONG).show()
@@ -845,7 +983,21 @@ class MainActivity : AppCompatActivity() {
     
     override fun onBackPressed() {
         if (webView.canGoBack()) {
-            webView.goBack()
+            // 返回上一頁前，把當前的 Y 軸位置直接寫進該網頁的 sessionStorage
+            webView.evaluateJavascript(
+                """
+                (function() {
+                    var sy = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+                    var key = 'scrollPos__' + window.location.href;
+                    sessionStorage.setItem(key, sy);
+                    return sy;
+                })();
+                """.trimIndent()
+            ) { sy ->
+                android.util.Log.d("ScrollRestore", "Saved position to session: $sy")
+                // 寫完後立刻執行返回
+                webView.goBack()
+            }
         } else {
             if (backPressedTime + 2000 > System.currentTimeMillis()) {
                 showExitConfirmationDialog()
@@ -978,6 +1130,7 @@ class MainActivity : AppCompatActivity() {
                     <div id="searchResults" class="search-results">
                         <a href="#" id="searchMissAV">在 MissAV 搜尋</a>
                         <a href="#" id="searchJable">在 Jable.TV 搜尋</a>
+                        <a href="#" id="searchAvJoy">在 AvJoy 搜尋</a>
                     </div>
                 </div>
                 
@@ -986,6 +1139,7 @@ class MainActivity : AppCompatActivity() {
                 <a href="javascript:Android.navigateToUrl('${domainConfig.getMissAvBaseUrl()}')">Go to MissAV</a>
                 <a href="javascript:Android.navigateToUrl('https://${domainConfig.getJableDomain()}/')">Go to Jable</a>
                 <a href="javascript:Android.navigateToUrl('https://${domainConfig.getRouVideoDomain()}/home')">Go to Rou.Video</a>
+                <a href="javascript:Android.navigateToUrl('https://${domainConfig.getAvJoyDomain()}/')">Go to AvJoy</a>
                 
                 <div class="help-button" onclick="showHelp()">?</div>
 
@@ -994,17 +1148,20 @@ class MainActivity : AppCompatActivity() {
                     const searchResults = document.getElementById('searchResults');
                     const searchMissAV = document.getElementById('searchMissAV');
                     const searchJable = document.getElementById('searchJable');
-                    
+                    const searchAvJoy = document.getElementById('searchAvJoy');
+
                     searchInput.addEventListener('input', function() {
                         const keyword = this.value.trim();
                         if (keyword.length > 0) {
                             searchResults.classList.add('show');
                             searchMissAV.textContent = '在 MissAV 搜尋: ' + keyword;
                             searchJable.textContent = '在 Jable.TV 搜尋: ' + keyword;
-                            
+                            searchAvJoy.textContent = '在 AvJoy 搜尋: ' + keyword;
+
                             // Update URLs
                             searchMissAV.href = 'https://${domainConfig.getMissAvDomain()}/search/' + encodeURIComponent(keyword);
                             searchJable.href = 'https://jable.tv/search/' + encodeURIComponent(keyword) + '/';
+                            searchAvJoy.href = 'https://${domainConfig.getAvJoyDomain()}/search/videos/' + encodeURIComponent(keyword);
                         } else {
                             searchResults.classList.remove('show');
                         }
@@ -1228,5 +1385,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cancelLoadTimeout()
+        videoProxyServer?.stop()
+        videoProxyServer = null
     }
 }

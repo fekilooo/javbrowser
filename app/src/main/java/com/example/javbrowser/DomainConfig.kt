@@ -40,8 +40,10 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
         "https://${getMissAvDomain()}/search/${query}"
 
     fun getJableDomain(): String = adFilterRules.getDomains()["jable"] ?: "jable.tv"
-    
+
     fun getRouVideoDomain(): String = adFilterRules.getDomains()["rou_video"] ?: "rouva3.xyz"
+
+    fun getAvJoyDomain(): String = adFilterRules.getDomains()["avjoy"] ?: "avjoy.me"
 
     /**
      * 更新 URL 中的網域為最新網域 (如果是已知的被封鎖網域)
@@ -58,6 +60,8 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
                 return uri.buildUpon().authority(getJableDomain()).build().toString()
             } else if (host.contains("rou.video", ignoreCase = true) || host.contains("rouva", ignoreCase = true)) {
                 return uri.buildUpon().authority(getRouVideoDomain()).build().toString()
+            } else if (host.contains("avjoy.", ignoreCase = true)) {
+                return uri.buildUpon().authority(getAvJoyDomain()).build().toString()
             }
         } catch (e: Exception) {
             // 解析失敗則直接回傳原網址

@@ -45,6 +45,9 @@ dependencies {
     
     // Biometric authentication
     implementation("androidx.biometric:biometric:1.1.0")
+
+    // Local HTTP proxy for CDN-protected video streaming
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
     
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

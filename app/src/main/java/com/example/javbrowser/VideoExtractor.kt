@@ -91,8 +91,49 @@ object VideoExtractor {
     }
 
     fun extractRouVideo(html: String): String? {
-        // Look for <video> tag with src attribute containing .m3u8
-        // Pattern: <video ... src="URL.m3u8?..." OR src='...'
+        try {
+            // New logic: Check for "ev" object with "d" and "k"
+            val evBlockPattern = Pattern.compile("\"ev\"\\s*:\\s*\\{([^}]+)\\}")
+            val evBlockMatcher = evBlockPattern.matcher(html)
+            
+            if (evBlockMatcher.find()) {
+                val block = evBlockMatcher.group(1) ?: ""
+                val dMatcher = Pattern.compile("\"d\"\\s*:\\s*\"([^\"]+)\"").matcher(block)
+                val kMatcher = Pattern.compile("\"k\"\\s*:\\s*(\\d+)").matcher(block)
+                
+                if (dMatcher.find() && kMatcher.find()) {
+                    val dBase64 = dMatcher.group(1)
+                    val kStr = kMatcher.group(1)
+                    val k = kStr.toInt()
+                    
+                    // Decode base64
+                    val decodedBytes = android.util.Base64.decode(dBase64, android.util.Base64.DEFAULT)
+                    // Shift characters
+                    val builder = java.lang.StringBuilder()
+                    for (byte in decodedBytes) {
+                        val shifted = (byte.toInt() and 0xFF) - k
+                        builder.append(shifted.toChar())
+                    }
+                    val decryptedJson = builder.toString()
+                    
+                    // Extract videoUrl
+                    val urlPattern = Pattern.compile("\"videoUrl\"\\s*:\\s*\"([^\"]+)\"")
+                    val urlMatcher = urlPattern.matcher(decryptedJson)
+                    if (urlMatcher.find()) {
+                        var videoUrl = urlMatcher.group(1)
+                        if (videoUrl != null) {
+                            // Replace index.jpg with index.m3u8 to get standard format
+                            videoUrl = videoUrl.replace("index.jpg", "index.m3u8")
+                            return videoUrl.replace("\\/", "/") // Unescape slashes if any
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Fallback to old method: Look for <video> tag with src attribute containing .m3u8
         val pattern = Pattern.compile("<video[^>]+src=[\"']([^\"']+\\.m3u8[^\"']*)[\"']", Pattern.CASE_INSENSITIVE)
         val matcher = pattern.matcher(html)
         if (matcher.find()) {
@@ -108,6 +149,45 @@ object VideoExtractor {
         }
         return null
     }
+    fun extractAvJoy(html: String): String? {
+        // Find all <source> tags and pick the one with the highest res value
+        val sourceTagPattern = Pattern.compile("<source([^>]+)>", Pattern.CASE_INSENSITIVE)
+        val srcPattern = Pattern.compile("src=[\"']([^\"']+\\.mp4[^\"']*)[\"']", Pattern.CASE_INSENSITIVE)
+        val resPattern = Pattern.compile("res=[\"'](\\d+)[\"']", Pattern.CASE_INSENSITIVE)
+
+        val tagMatcher = sourceTagPattern.matcher(html)
+        var bestUrl: String? = null
+        var bestRes = -1
+
+        while (tagMatcher.find()) {
+            val attrs = tagMatcher.group(1) ?: continue
+            val srcMatcher = srcPattern.matcher(attrs)
+            if (srcMatcher.find()) {
+                val url = srcMatcher.group(1) ?: continue
+                val resMatcher = resPattern.matcher(attrs)
+                val res = if (resMatcher.find()) resMatcher.group(1)?.toIntOrNull() ?: 0 else 0
+                if (res > bestRes) {
+                    bestRes = res
+                    bestUrl = url
+                }
+            }
+        }
+
+        if (bestUrl != null) return bestUrl
+
+        // Fallback: <video src="...mp4">
+        val videoPattern = Pattern.compile(
+            "<video[^>]+src=[\"']([^\"']+\\.mp4[^\"']*)[\"']",
+            Pattern.CASE_INSENSITIVE
+        )
+        val videoMatcher = videoPattern.matcher(html)
+        if (videoMatcher.find()) {
+            return videoMatcher.group(1)
+        }
+
+        return null
+    }
+
     fun fetchBestQualityUrl(masterUrl: String, callback: (String) -> Unit) {
         kotlin.concurrent.thread {
             try {
