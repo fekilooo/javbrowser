@@ -1,4 +1,4 @@
-# **JAV Browser – The Ultimate Private Player for MISSAV, JABLE.TV & ROU.VIDEO**
+# **JAV Browser – The Ultimate Private Player for MISSAV, JABLE.TV & ROU.VIDEO & AVJOY**
 <!-- SEO: missav adblock, jable fast player, adult video player android -->
 ### **Ad-Lite Browsing × Extreme Privacy × Smart Video Tools**
 
@@ -10,7 +10,7 @@
 
 ## ✨ **Overview**
 
-**JAV Browser** is a privacy-focused Android browser designed specifically for online video sites such as **MISSAV**, **JABLE.TV**, and **ROU.VIDEO**.
+**JAV Browser** is a privacy-focused Android browser designed specifically for online video sites such as **MISSAV**, **JABLE.TV**, and **ROU.VIDEO**, and **AVJOY**.
 It intelligently reduces intrusive ads, blocks disruptive scripts, and integrates seamlessly with external players for a smoother, safer, and more private viewing experience.
 
 ---
@@ -59,7 +59,7 @@ Automatically enhances your viewing experience:
 
   * HLS streams (`.m3u8`)
   * Video containers on supported sites
-  * Works with MISSAV, JABLE.TV, ROU.VIDEO
+  * Works with MISSAV, JABLE.TV, ROU.VIDEO, AVJOY
 
 * **External Player Support**:
 
@@ -110,7 +110,7 @@ Four launcher identities:
 ## 5️⃣ 🔍 Quick Navigation & Integrated Search
 
 * Unified search bar with instant suggestions
-* One-tap shortcuts to **MISSAV**, **JABLE.TV**, **ROU.VIDEO**
+* One-tap shortcuts to **MISSAV**, **JABLE.TV**, **ROU.VIDEO**, **AVJOY**
 
 ---
 
@@ -177,6 +177,7 @@ To ensure latest ad-blocking rules:
 * **MISSAV** (`missav.ws`)
 * **JABLE.TV** (`jable.tv`)
 * **ROU.VIDEO** (`rou.video`)
+* **AVJOY** ('AVJOY.me')
 
 ---
 
