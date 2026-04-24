@@ -74,7 +74,7 @@ Four launcher identities to choose from:
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="https://i.imgur.com/ayUpZnu.png" width="200" alt="Home Search" />
+  <img src="https://i.imgur.com/yiwOjx3.png" width="200" alt="Home Search" />
   <img src="https://i.imgur.com/chddCPd.png" width="200" alt="Bookmarks" />
   <img src="https://i.imgur.com/8bPCvRT.png" alt="Cast Filter" width="200" />
   <img src="https://i.imgur.com/Yhvyn0y.png" alt="Tag Filter" width="200" />
