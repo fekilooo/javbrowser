@@ -75,16 +75,16 @@ Four launcher identities to choose from:
 
 <p align="center">
   <img src="https://i.imgur.com/ayUpZnu.png" width="200" alt="Home Search" />
-  <img src="https://i.imgur.com/Ps1Uvty.png" width="200" alt="Bookmarks" />
-  <img src="https://i.imgur.com/1OFpXSF.png" alt="Cast Filter" width="200" />
-  <img src="https://i.imgur.com/dCyRB5J.png" alt="Tag Filter" width="200" />
+  <img src="https://i.imgur.com/chddCPd.png" width="200" alt="Bookmarks" />
+  <img src="https://i.imgur.com/8bPCvRT.png" alt="Cast Filter" width="200" />
+  <img src="https://i.imgur.com/Yhvyn0y.png" alt="Tag Filter" width="200" />
 </p>
 
 <p align="center">
   <img src="https://i.imgur.com/HKo5i1M.png" width="200" alt="Settings" />
   <img src="https://i.imgur.com/6vTxU3X.png" width="200" alt="Local Backup" />
   <img src="https://i.imgur.com/LNxAwmV.png" width="200" alt="Ad Rules" />
-  <img src="https://i.imgur.com/whErVlJ.png" width="200" alt="External Player" />
+  <img src="https://i.imgur.com/CBgIpvM.png" width="200" alt="External Player" />
 </p>
 
 <p align="center">
