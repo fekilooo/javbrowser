@@ -1,6 +1,6 @@
 # JAV Browser
 
-> The Ultimate Private Player for MISSAV, JABLE.TV, ROU.VIDEO & AVJOY
+> A private Android browser, internal player, download manager, and smart library for MISSAV, JABLE.TV, ROU.VIDEO, AVJOY, JavHDPorn, JavDB, and JavTrailers.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://www.android.com/)
@@ -8,174 +8,177 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
-**JAV Browser** is a privacy-focused Android browser designed specifically for online video sites such as [MISSAV](https://missav.ws), [JABLE.TV](https://jable.tv), [ROU.VIDEO](https://rou.video), and [AVJOY](https://avjoy.me). 
+**JAV Browser** is a privacy-focused Android app built for browsing, playing, bookmarking, and managing videos from supported JAV sites. It combines an ad-reduced WebView browser, an internal fullscreen player, external player handoff, smart bookmarks, cross-site lookup, and a built-in video downloader.
 
-It intelligently reduces intrusive ads, blocks disruptive scripts, and integrates seamlessly with external players for a smoother, safer, and more private viewing experience.
-
----
-
-## ✨ Key Features
-
-### 🛡️ Advanced Multi-Layer Ad Reduction
-- **Network-level blocking** – Stops ad requests before loading
-- **DOM cleanup engine** – Removes intrusive elements in real time
-- **Auto-close logic** – Detects and closes pop-ups automatically
-- **Recurring scan** – Cleans new ad elements every second
-
-### ▶️ Smart Video Detection & External Player Integration
-- **Auto-detects** HLS streams (.m3u8) and video containers on supported sites
-- **One-tap launch** into MX Player, VLC, and other external players
-- **Better gesture control**, advanced playback, subtitles, and background mode
-- **Auto-copy video URL** when tapping PLAY button for easy M3U8 download
-
-### ♥ Smart Visual Bookmark System
-- One-tap favorite with ❤️ button
-- Auto thumbnail capture
-- Visual card view with full title display
-- Instant search and bulk delete
-- **Offline database** – Automatically fetches metadata (tags, cast, release date) from JavDB
-
-### 🔒 Military-Grade Privacy Protection
-
-| Feature | JAV Browser | Standard Browser |
-|---------|-------------|------------------|
-| Partial Ad Removal | ✅ Multi-layer blocking | ❌ Plugin required |
-| Video Detection | ✅ Auto-detect + External Player | ❌ Not supported |
-| Video Bookmarking | ✅ Thumbnail + Search | ❌ Basic bookmarks only |
-| App Lock | ✅ Biometrics (Fingerprint/Face) | ❌ Not available |
-| Icon Disguise | ✅ 4 optional icons | ❌ Not possible |
-| Recent Apps Privacy | ✅ Blank screen | ❌ Content visible |
-| Screenshot Block | ✅ Automatic | ❌ None |
-
-**App Lock with Biometrics**
-- Supports fingerprint / face unlock
-- Mandatory authentication on cold start
-
-**Icon Disguise System**
-Four launcher identities to choose from:
-- 📱 JAV Browser (default)
-- 🔢 Calculator
-- 📝 Notes
-- 📁 File Manager
-
-**Background Privacy**
-- Recent Apps screen shows blank view
-- Screenshots & screen recording automatically disabled
-
-### 🔍 Quick Navigation & Integrated Search
-- Unified search bar with instant suggestions
-- Direct keyword/ID search from homepage
-- One-tap shortcuts to supported sites
+The app is designed for local-first use: bookmarks, download records, settings, and imported local video references are stored on the device.
 
 ---
 
-## 📸 Screenshots
+## Highlights
 
-<p align="center">
-  <img src="https://i.imgur.com/yiwOjx3.png" width="200" alt="Home Search" />
-  <img src="https://i.imgur.com/chddCPd.png" width="200" alt="Bookmarks" />
-  <img src="https://i.imgur.com/8bPCvRT.png" alt="Cast Filter" width="200" />
-  <img src="https://i.imgur.com/Yhvyn0y.png" alt="Tag Filter" width="200" />
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/HKo5i1M.png" width="200" alt="Settings" />
-  <img src="https://i.imgur.com/6vTxU3X.png" width="200" alt="Local Backup" />
-  <img src="https://i.imgur.com/LNxAwmV.png" width="200" alt="Ad Rules" />
-  <img src="https://i.imgur.com/CBgIpvM.png" width="200" alt="External Player" />
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/N8a8RMI.png" width="200" alt="Privacy Features" />
-</p>
+- **Ad-reduced browsing** for supported sites with network blocking, DOM cleanup, popup handling, and cloud-updatable rules.
+- **Internal fullscreen player** with HLS playback, orientation lock, resolution selection on supported MISSAV streams, and press-and-hold speed boost.
+- **External player support** for apps such as MX Player, VLC, and other Android video players.
+- **Built-in video downloads** for direct MP4 and HLS streams, including progress notifications, cancel/retry, resume-friendly HLS segment cache, and MP4 remux when possible.
+- **Download management page** with file size, app video storage usage, phone free space, folder selection, import, open, delete, retry, and record cleanup.
+- **Smart bookmark library** with thumbnails, titles, metadata, cast/tag filtering, batch delete, backup/import/export, and lazy JavDB enrichment.
+- **Batch bookmark import** from pasted/shared video codes, including FC2 handling through MISSAV when JavTrailers is unavailable.
+- **Cross-site related links** for Jable, MISSAV variants, AvJoy, and JavHDPorn when matching pages are found.
+- **Local video import** through Android's file picker, useful for private/isolated storage spaces where direct folder scanning is restricted.
+- **Privacy tools** including biometric lock, optional screenshot blocking, recent-apps protection, and launcher icon disguise.
+- **Bilingual UI** that follows the device language for Traditional Chinese and English.
 
 ---
 
-## 🚀 Getting Started
+## Screenshots
 
-### Prerequisites
-- Android 7.0+ (API 24)
-- RAM 2GB+ recommended
-- Biometric hardware (optional, for app lock feature)
+| Home | Player | Bookmarks | Settings |
+| :--: | :--: | :--: | :--: |
+| <img src="https://i.imgur.com/M4mLWUz.png" width="200" alt="Home" /> | <img src="https://i.imgur.com/FWctSCb.png" width="200" alt="Player" /> | <img src="https://i.imgur.com/hIQzMod.png" width="200" alt="Bookmarks" /> | <img src="https://i.imgur.com/ueXo6Mh.png" width="200" alt="Settings" /> |
 
-### Installation
+<img src="https://i.imgur.com/DodPkNT.png" width="200" alt="Settings2" />
+<img src="https://i.imgur.com/MhFE59E.png" width="200" alt="Settings3" />
+<img src="https://i.imgur.com/iyJwlsd.png" width="200" alt="DL" />
+---
 
-1. **Download the APK**
-   - Get the latest release from the [Releases](../../releases) page
+## Browser And Playback
 
-2. **Enable Unknown Sources**
-   - Go to `Settings` → `Security` → Enable `Install Unknown Apps`
+JAV Browser detects supported video pages and shows playback controls when a playable stream is found.
 
-3. **Install & Launch**
-   - Install the APK and open the app
-
-4. **First-Time Setup**
-   - Go to `Settings` → Scroll to bottom → Tap `Update Rule` to get the latest ad-blocking rules
+- Internal player for HLS and direct video URLs.
+- One-tap external player handoff.
+- MISSAV HLS quality selector when the master playlist exposes variants such as Auto, 1080p, 720p, and 360p.
+- Current-orientation screen lock in the internal player, including portrait, landscape, and reverse landscape states.
+- Press-and-hold video surface speed boost, configurable in Settings. The default is 3x.
+- Referer, Cookie, and User-Agent handling for protected media URLs.
 
 ---
 
-## 🎬 Usage Scenarios
+## Downloads
 
-| Scenario | How To |
-|----------|--------|
-| **Clean Browsing** | Open app → Go to site → Ads minimized → Watch comfortably |
-| **Smart Favorites** | Browse → Tap ❤️ → Thumbnail auto-captured → Find later via search |
-| **External Player** | Enter video page → Wait for green Play button → Tap → Choose MX Player/VLC |
-| **Privacy Mode** | Settings → Enable App Lock → Switch to "Calculator" icon → Safe and invisible |
-| **Tag Filtering** | Bookmarks page → Select multiple tags → Auto-filter matching videos |
-| **Local Backup** | Settings → Bookmark Settings → Connect to local server for backup |
+The built-in downloader is intended for videos that can be legally accessed and downloaded by the user.
+
+- Direct MP4 downloads.
+- HLS playlist parsing and highest-quality variant selection.
+- MISSAV HLS parallel segment downloads with sequential fallback.
+- AES-128 HLS segment handling when keys are available.
+- HLS segment merge and TS-to-MP4 remux when Android's media stack can remux the file.
+- Foreground notifications with progress, speed, completion, failure, and cancel action.
+- Resume-friendly temporary segment cache for interrupted HLS downloads.
+- Custom download folder support through Android's folder picker.
+- Download manager showing each file size plus total app video usage and remaining phone storage.
+- Local video import for files that Android exposes through the system picker.
+
+Current limitations:
+
+- DRM and live streams are not supported.
+- Byte-Range HLS is not supported.
+- Some protected/private storage areas can only be accessed through Android's file picker or share/open-with flow.
 
 ---
 
-## 🌐 Supported Sites
+## Bookmarks And Library
+
+The bookmark system is built as a video library rather than a simple URL list.
+
+- One-tap bookmark from supported video/detail pages.
+- Visual cards with title, cover, code, tags, actors, maker, rating, release date, and related links when available.
+- Search, filters, batch selection, batch delete, and date grouping.
+- JavDB enrichment through the configured method and token.
+- JavTrailers lookup for title, cover, gallery images, and trailer previews.
+- Batch add from pasted/shared JAV codes.
+- FC2 batch bookmarks use MISSAV as the primary source, because FC2 entries are not available on JavTrailers.
+- Bookmark backup, import, and export from Settings.
+
+---
+
+## Supported Sites
+
+Primary browsing, playback, and download targets:
 
 - [MISSAV](https://missav.ws)
 - [JABLE.TV](https://jable.tv)
 - [ROU.VIDEO](https://rou.video)
 - [AVJOY](https://avjoy.me)
+- [JavHDPorn](https://www.javhdporn.net)
+
+Metadata, library, and related-link helpers:
+
+- [JavDB](https://javdb.com)
+- [JavTrailers](https://javtrailers.com)
+
+Domains can be updated through app rules when supported sites change hostnames.
 
 ---
 
-## 🔐 Privacy Commitment
+## Privacy Features
 
-We strictly guarantee:
+- Biometric app lock with fingerprint/face unlock when supported by the device.
+- Optional screenshot and screen recording blocking.
+- Recent-apps privacy behavior.
+- Launcher icon disguise:
+  - JAV Browser
+  - Calculator
+  - Notes
+  - File Manager
+- Local-first storage for bookmarks, settings, download records, and local video references.
 
-- ✅ **No tracking**, no analytics, no data collection
-- ✅ All bookmarks & settings stored **locally**
-- ✅ **No browsing history** saved
-- ✅ **No data uploaded** to servers—ever
-
----
-
-## ⚠️ Disclaimer
-
-- For adults only, used responsibly in private environments
-- Follow all laws in your region
-- Protect your privacy at all times
+No analytics or tracking SDK is required for the app's core features.
 
 ---
 
-## 💬 User Feedback
+## Installation
 
-> "Finally no more annoying ads. Bookmark system is perfect." — User A
-
-> "Icon disguise is genius. No one knows what it is." — User B
-
-> "MX Player integration works flawlessly." — User C
-
-> "Blank Recent Apps screen is the best privacy feature ever." — User D
+1. Download the latest APK from the [Releases page](https://github.com/fekilooo/javbrowser/releases/).
+2. Enable `Install Unknown Apps` for the app or browser used to install the APK.
+3. Install and launch JAV Browser.
+4. Open `Settings` and update the rule set for the latest ad-blocking and domain rules.
+5. Optional: enable app lock, icon disguise, screenshot protection, download folder, and JavDB enrichment.
 
 ---
 
-## 📄 License
+## Requirements
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Android 7.0+ (API 24)
+- Android 13+ notification permission is recommended for download progress notifications.
+- Biometric hardware is optional and only required for biometric lock.
+- Storage and video permissions may be requested depending on Android version and local video features.
+
+---
+
+## Typical Workflows
+
+| Workflow | What You Do |
+| --- | --- |
+| Clean browsing | Open a supported site, browse normally, and let rule-based cleanup reduce disruptive ads. |
+| Internal playback | Open a video page, tap Play, use fullscreen controls, quality selector, orientation lock, and speed boost. |
+| External playback | Tap Play and choose an external player when preferred. |
+| Download | Open a playable video, tap download, monitor progress in notifications or the Downloads page. |
+| Build a library | Bookmark pages, enrich metadata, filter by tags/actors, and follow related site links. |
+| Batch bookmarks | Paste or share multiple video codes from the home page and add them in one pass. |
+| Local videos | Import videos through the Android picker and play them from the Downloads page. |
+| Privacy mode | Enable app lock, disguise the launcher icon, and hide sensitive previews. |
+
+---
+
+## Disclaimer
+
+- This app is intended for adults only.
+- Use it responsibly and follow the laws and terms that apply in your region.
+- Only download or store media that you are allowed to access.
+- Supported websites may change their structure, domains, or protection methods at any time, which can affect playback, downloads, metadata lookup, and ad reduction.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  <b>JAV Browser – Your Private Viewing Companion</b><br>
-  🔒 Privacy | 🛡️ Ad Reduction | ♥ Smart Bookmark Engine
+  <strong>JAV Browser</strong><br>
+  Private browsing, internal playback, smart bookmarks, and local video management for Android.
 </p>
