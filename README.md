@@ -15,9 +15,14 @@ The current release is substantially different from the early browser-only versi
 
 ## Screenshots
 
-| Home | Internal Player | Bookmarks | Privacy Settings |
+| Home | Player | Bookmarks | Settings |
 | :--: | :--: | :--: | :--: |
-| <img src="https://i.imgur.com/oT5zrjm.png" width="200" alt="JAV Browser home page" /> | <img src="https://i.imgur.com/EkPbACZ.png" width="200" alt="Internal player" /> | <img src="https://i.imgur.com/7kFGdbI.png" width="200" alt="Bookmark library" /> | <img src="https://i.imgur.com/YFuLTx3.png" width="200" alt="Privacy settings" /> |
+| <img src="https://i.imgur.com/M4mLWUz.png" width="200" alt="Home" /> | <img src="https://i.imgur.com/FWctSCb.png" width="200" alt="Player" /> | <img src="https://i.imgur.com/hIQzMod.png" width="200" alt="Bookmarks" /> | <img src="https://i.imgur.com/ueXo6Mh.png" width="200" alt="Settings" /> |
+
+<img src="https://i.imgur.com/DodPkNT.png" width="200" alt="Settings2" />
+<img src="https://i.imgur.com/MhFE59E.png" width="200" alt="Settings3" />
+<img src="https://i.imgur.com/iyJwlsd.png" width="200" alt="DL" />
+
 
 ## What Changed From the Earlier Version?
 
