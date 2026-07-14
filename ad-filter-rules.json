@@ -1,77 +1,140 @@
 {
-    "version": "2.3.3",
-    "lastUpdate": "2026-03-31T21:30:00Z",
-    "domains": {
-        "missav": "missav.ai",
-        "jable": "jable.tv",
-        "rou_video": "rouva3.xyz",
-        "avjoy": "avjoy.me"
-    },
-    "rules": {
-        "commonBlock": [
-            "jads.co",
-            "juicyads.com",
-            "creative.myavlive.com",
-            "silent-basis.pro",
-            "ptelastaxo.com",
-            "magsrv.com",
-            "afcdn.net",
-            "siscprts.com",
-            "exoclick.com",
-            "go.mnaspm.com",
-            "onclckbn.net",
-            "smartpop",
-            "tsyndicate.com",
-            "ad-provider.js",
-            "ra12.xyz",
-            "rdz1.xyz",
-            "ra13.xyz",
-            "uug27.com",
-            "fluxtrck.site",
-            "fuu78.com",
-            "zlinkr.com",
-            "mnaspm.com",
-            "shukriya90.com",
-            "shopee",
-            "shp.ee",
-            "lazada",
-            "e608df03d6",
-            "capndr.com",
-            "onclckbnr.com",
-            "tscprts.com",
-            "clammyendearedkeg",
-            "cdn.storageimagedisplay.com",
-            "creative-sb1.com",
-            "sunnycloudstone.com",
-            "xxxvjmp.com",
-            "myavlive.com",
-            "snaptrckr.fun",
-            "rmhfrtnd.com",
-            "preferencenail.com",
-            "content-sync.xyz",
-            "nightdestruct.com",
-            "tapioni.com",
-            "sandwichconscientiousroadside.com",
-            "doppiocdn.com",
-            "xlirdr.com",
-            "javhdporn.live",
-            "growcdnssedge.com",
-            "skinnycrawlinglax.com",
-            "partwithner.com",
-            "sizn.cc",
-            "doppiocdn.com",
-            "thscprts.com",
-            "trafficjunky.net",
-            "aaa9u.com",
-            "whitetrafsa.com"
+  "version": "3.0.1",
+  "lastUpdate": "2026-07-14T16:33:00Z",
+  "domains": {
+    "missav": "missav.ai",
+    "jable": "jable.tv",
+    "rou_video": "rouva3.xyz",
+    "avjoy": "avjoy.me"
+  },
+  "rules": {
+    "commonBlock": [
+      "jads.co",
+      "juicyads.com",
+      "creative.myavlive.com",
+      "silent-basis.pro",
+      "ptelastaxo.com",
+      "magsrv.com",
+      "afcdn.net",
+      "siscprts.com",
+      "exoclick.com",
+      "go.mnaspm.com",
+      "onclckbn.net",
+      "smartpop",
+      "tsyndicate.com",
+      "ad-provider.js",
+      "ra12.xyz",
+      "rdz1.xyz",
+      "ra13.xyz",
+      "uug27.com",
+      "fluxtrck.site",
+      "fuu78.com",
+      "zlinkr.com",
+      "mnaspm.com",
+      "shukriya90.com",
+      "shopee",
+      "shp.ee",
+      "lazada",
+      "e608df03d6",
+      "capndr.com",
+      "onclckbnr.com",
+      "tscprts.com",
+      "clammyendearedkeg",
+      "cdn.storageimagedisplay.com",
+      "creative-sb1.com",
+      "sunnycloudstone.com",
+      "xxxvjmp.com",
+      "myavlive.com",
+      "snaptrckr.fun",
+      "rmhfrtnd.com",
+      "preferencenail.com",
+      "content-sync.xyz",
+      "nightdestruct.com",
+      "tapioni.com",
+      "sandwichconscientiousroadside.com",
+      "doppiocdn.com",
+      "xlirdr.com",
+      "javhdporn.live",
+      "growcdnssedge.com",
+      "skinnycrawlinglax.com",
+      "partwithner.com",
+      "sizn.cc",
+      "thscprts.com",
+      "trafficjunky.net",
+      "aaa9u.com",
+      "whitetrafsa.com"
+    ],
+    "networkBlock": [
+      "sunnycloudstone.com"
+    ],
+    "linkBlock": [],
+    "iframeBlock": [
+      "sunnycloudstone.com"
+    ],
+    "redirectBlock": [],
+    "siteRules": {
+      "avtoday.io": {
+        "allowRequests": [
+          {
+            "hostSuffix": "avtoday.io",
+            "pathPrefix": "/pic/"
+          },
+          {
+            "hostSuffix": "avtoday.io",
+            "pathPrefix": "/preview/"
+          },
+          {
+            "hostSuffix": "avtoday.io",
+            "pathPrefix": "/player"
+          },
+          {
+            "hostSuffix": "avtoday.io",
+            "pathPrefix": "/streaming/"
+          }
         ],
-        "networkBlock": [
-            "sunnycloudstone.com"
+        "requestBlock": [
+          {
+            "hostSuffix": "avtoday.io",
+            "pathEquals": "/redirect-stripchat",
+            "mainFrame": false
+          },
+          {
+            "hostSuffix": "avtoday.io",
+            "pathEquals": "/img/500x143-9u.gif",
+            "mainFrame": false
+          }
         ],
-        "linkBlock": [],
-        "iframeBlock": [
-            "sunnycloudstone.com"
+        "navigationBlock": [
+          {
+            "hostSuffix": "aaa9u.com"
+          },
+          {
+            "hostSuffix": "telegram.me"
+          }
         ],
-        "redirectBlock": []
+        "domRemove": [
+          {
+            "selector": "a[href*=\"aaa9u.com\"]",
+            "closest": "a"
+          },
+          {
+            "selector": "img[src*=\"/img/500x143-9u.gif\"]",
+            "closest": "a"
+          },
+          {
+            "selector": "iframe[src*=\"/redirect-stripchat\"]",
+            "closest": ".thumbnail.col"
+          },
+          {
+            "selector": ".video-title a[href=\"/live\"]",
+            "closest": ".thumbnail.col"
+          },
+          {
+            "selector": "a.btn-categories[href*=\"telegram.me\"]",
+            "closest": ".swiper-slide"
+          }
+        ]
+      }
     }
+  }
 }
