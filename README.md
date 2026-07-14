@@ -422,13 +422,13 @@ This project's development workflow archives successful debug builds with a time
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 Copy-Item `
     .\app\build\outputs\apk\debug\app-debug.apk `
-    "Z:\JAV\JAV-debug-$stamp.apk"
+    ".\JAV-debug-$stamp.apk"
 ```
 
 Example:
 
 ```text
-Z:\JAV\JAV-debug-20260629-024819.apk
+.\JAV-debug-20260629-024819.apk
 ```
 
 ### When to Rebuild After an Ad-Rule Change
