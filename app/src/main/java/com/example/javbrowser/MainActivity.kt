@@ -83,6 +83,7 @@ class MainActivity : LocalizedActivity() {
         .build()
     private var stripchatRecordingStatusRunnable: Runnable? = null
     private var stripchatRecordingStatusUrl: String = ""
+    @Volatile private var stripchatRecordingModelId: Long = 0L
     private var stripchatOfflineConfirmations = 0
     private var stripchatLastOfflineConfirmationAt = 0L
     @Volatile private var stripchatWatchSessionActive = false
@@ -93,6 +94,8 @@ class MainActivity : LocalizedActivity() {
     private var stripchatWatchStartRequestedAt = 0L
     // 只有使用者主動按 Home 鍵（真正離開 app）時才設為 true
     private var userLeftApp = false
+    // 從銷售排行開啟搜尋頁時，返回鍵應回到排行頁，而不是先走 WebView 歷史。
+    private var returnToSalesRanking = false
 
     companion object {
         // 書籤頁設定 URL，MainActivity.onResume 讀取後清空
@@ -102,6 +105,7 @@ class MainActivity : LocalizedActivity() {
         const val ACTION_LOAD_URL = "com.example.javbrowser.LOAD_URL"
         const val EXTRA_URL = "url"
         const val EXTRA_CLEAR_HISTORY = "clear_history"
+        const val EXTRA_RETURN_TO_SALES = "return_to_sales_ranking"
     }
 
     // 接收書籤頁傳來的 URL
@@ -186,6 +190,7 @@ class MainActivity : LocalizedActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        returnToSalesRanking = intent?.getBooleanExtra(EXTRA_RETURN_TO_SALES, false) == true
         android.util.Log.d("NAV_DEBUG", "onCreate intentUrl=${intent?.getStringExtra("url")} action=${intent?.action}")
         // 開啟 Chrome Remote DevTools（chrome://inspect/#devices）
         WebView.setWebContentsDebuggingEnabled(true)
@@ -286,6 +291,7 @@ class MainActivity : LocalizedActivity() {
         super.onNewIntent(intent)
         android.util.Log.d("NAV_DEBUG", "onNewIntent intentUrl=${intent?.getStringExtra("url")} action=${intent?.action}")
         setIntent(intent)
+        returnToSalesRanking = intent?.getBooleanExtra(EXTRA_RETURN_TO_SALES, false) == true
         handleIncomingIntent(intent)
     }
 
@@ -475,6 +481,16 @@ class MainActivity : LocalizedActivity() {
         val isAvplePage = pageUrl?.contains("avple.tv", ignoreCase = true) == true
         val rules = siteRulesForPage(pageUrl)?.domRemove.orEmpty()
             .filterNot { isAvplePage && it.selector.contains("video", ignoreCase = true) }
+            .toMutableList()
+        if (pageUrl?.let(::isRouVideoUrl) == true) {
+            // ROU 新版把站內廣告統一導向 /api/hop/；只移除這些明確的
+            // 廣告連結與其純廣告容器，不碰 data-slot=card 的影片卡片。
+            rules.add(
+                0,
+                SiteDomRemoveRule("div:has(> a[href*='/api/hop/'])")
+            )
+            rules.add(SiteDomRemoveRule("a[href*='/api/hop/']"))
+        }
         if (view == null || rules.isEmpty()) return
         val payload = org.json.JSONArray()
         rules.forEach { rule ->
@@ -527,6 +543,12 @@ class MainActivity : LocalizedActivity() {
             })($payload);
         """.trimIndent()
         view.evaluateJavascript(js, null)
+    }
+
+    private fun isRouVideoUrl(url: String): Boolean {
+        val host = runCatching { Uri.parse(url).host.orEmpty().lowercase() }.getOrDefault("")
+        return host == "rou.video" || host.endsWith(".rou.video") ||
+            Regex("^rouva\\d+\\.xyz$").matches(host)
     }
 
     /**
@@ -888,6 +910,9 @@ class MainActivity : LocalizedActivity() {
                          pageUrl.contains("avple.tv", ignoreCase = true) ||
                          pageUrl.contains("whos.tv", ignoreCase = true) ||
                          pageUrl.contains("stripchat.com", ignoreCase = true))) {
+                        currentVideoReferer = originForUrl(pageUrl)
+                    }
+                    if (isRouVideoUrl(pageUrl)) {
                         currentVideoReferer = originForUrl(pageUrl)
                     }
                     showPlayButtonIfAllowed()
@@ -1372,6 +1397,13 @@ class MainActivity : LocalizedActivity() {
                 val url = request?.url?.toString() ?: return false
                 val lowerUrl = url.lowercase()
 
+                if (isRouVideoUrl(currentPageUrl) &&
+                    request.url.path.orEmpty().startsWith("/api/hop/", ignoreCase = true)
+                ) {
+                    android.util.Log.d("AdBlock", "ROU ad navigation blocked target=$url")
+                    return true
+                }
+
                 val navigationRules = siteRulesForPage(currentPageUrl)?.navigationBlock.orEmpty()
                 if (navigationRules.any { it.matches(url, request.isForMainFrame) }) {
                     android.util.Log.d("AdBlock", "site navigation blocked page=$currentPageUrl target=$url")
@@ -1416,6 +1448,12 @@ class MainActivity : LocalizedActivity() {
                 val url = request?.url.toString()
                 val lowerUrl = url.lowercase()
                 val isMainFrame = request?.isForMainFrame ?: false
+
+                if (isRouVideoUrl(currentPageUrl) &&
+                    request?.url?.path.orEmpty().startsWith("/api/hop/", ignoreCase = true)
+                ) {
+                    return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+                }
 
                 /* AD BLOCKING DISABLED
                 if (isAd(lowerUrl)) {
@@ -2248,7 +2286,7 @@ class MainActivity : LocalizedActivity() {
         // MissAV: usually has UUID or just check all pages on missav domain
         
         // Inject JS to monitor video element for src changes and intercept network requests for rou.video
-        if (url.contains("rou.video") || url.contains("rouva")) {
+        if (isRouVideoUrl(url)) {
             val monitorJs = """
                 (function() {
                     if (window.rouVideoMonitor) return; // Already monitoring
@@ -2266,29 +2304,30 @@ class MainActivity : LocalizedActivity() {
                     // Stop checking after 30 seconds
                     setTimeout(function() { clearInterval(checkInterval); }, 30000);
 
-                    // 2. Intercept Fetch API to sniff .m3u8 or index.jpg (new)
+                    function reportRouVideo(value) {
+                        try {
+                            var resolved = new URL(String(value || ''), location.href);
+                            if (/\/api\/hls\//i.test(resolved.pathname) || /\.m3u8(?:$|[?#])/i.test(resolved.href)) {
+                                Android.onVideoFound(resolved.href);
+                                return true;
+                            }
+                        } catch (e) {}
+                        return false;
+                    }
+
+                    // 2. Intercept Fetch API；新版入口是沒有副檔名的 /api/hls/{id}
                     var originalFetch = window.fetch;
                     window.fetch = async function() {
                         var fetchUrl = arguments[0];
                         var urlStr = typeof fetchUrl === 'string' ? fetchUrl : (fetchUrl && fetchUrl.url ? fetchUrl.url : '');
-                        if (urlStr.indexOf('.m3u8') !== -1) {
-                            Android.onVideoFound(urlStr);
-                        } else if (urlStr.indexOf('index.jpg') !== -1 && urlStr.indexOf('exp=') !== -1 && urlStr.indexOf('auth=') !== -1) {
-                            Android.onVideoFound(urlStr.replace('index.jpg', 'index.m3u8'));
-                        }
+                        reportRouVideo(urlStr);
                         return originalFetch.apply(this, arguments);
                     };
 
                     // 3. Intercept XHR to sniff
                     var originalXhrOpen = XMLHttpRequest.prototype.open;
-                    XMLHttpRequest.prototype.open = function(method, url) {
-                        if (typeof url === 'string') {
-                            if (url.indexOf('.m3u8') !== -1) {
-                                Android.onVideoFound(url);
-                            } else if (url.indexOf('index.jpg') !== -1 && url.indexOf('exp=') !== -1 && url.indexOf('auth=') !== -1) {
-                                Android.onVideoFound(url.replace('index.jpg', 'index.m3u8'));
-                            }
-                        }
+                    XMLHttpRequest.prototype.open = function(method, requestUrl) {
+                        reportRouVideo(requestUrl);
                         return originalXhrOpen.apply(this, arguments);
                     };
                 })();
@@ -2621,23 +2660,25 @@ class MainActivity : LocalizedActivity() {
                             log('no model username from path=' + location.pathname);
                             return;
                         }
-                        var apiUrls = [
-                            location.origin + '/api/front/v2/models/username/' + encodeURIComponent(username) + '/cam?uniq=' + Math.floor(Math.random() * 1000000000),
-                            'https://stripchat.com/api/front/v2/models/username/' + encodeURIComponent(username) + '/cam?uniq=' + Math.floor(Math.random() * 1000000000)
-                        ];
+                        var apiBases = [location.origin, 'https://stripchat.com'];
                         function tryApi(index) {
-                            if (index >= apiUrls.length) return;
-                            var apiUrl = apiUrls[index];
-                            log('fetch api=' + apiUrl);
-                            fetch(apiUrl, { credentials: 'include' })
-                                .then(function(resp) { return resp.text(); })
-                                .then(function(text) {
-                                    try {
-                                        if (!reportApiPayload(JSON.parse(text))) tryApi(index + 1);
-                                    } catch (e) {
-                                        log('api json failed=' + e);
-                                        tryApi(index + 1);
-                                    }
+                            if (index >= apiBases.length) return;
+                            var base = apiBases[index];
+                            var idUrl = base + '/api/front/users/user-ids/' + encodeURIComponent(username);
+                            log('fetch model id=' + idUrl);
+                            fetch(idUrl, { credentials: 'include' })
+                                .then(function(resp) { return resp.json(); })
+                                .then(function(idPayload) {
+                                    var modelId = idPayload && idPayload.id;
+                                    if (!modelId) throw new Error('model id missing');
+                                    var camUrl = base + '/api/front/v2/models/' + encodeURIComponent(modelId) +
+                                        '/cam?uniq=' + Math.floor(Math.random() * 1000000000);
+                                    log('fetch cam=' + camUrl);
+                                    return fetch(camUrl, { credentials: 'include' });
+                                })
+                                .then(function(resp) { return resp.json(); })
+                                .then(function(payload) {
+                                    if (!reportApiPayload(payload)) tryApi(index + 1);
                                 })
                                 .catch(function(e) { log('api fetch failed=' + e); tryApi(index + 1); });
                         }
@@ -2666,8 +2707,12 @@ class MainActivity : LocalizedActivity() {
                     currentVideoReferer = originForUrl(url) ?: domainConfig.getMissAvBaseUrl()
                     android.util.Log.d("MISSAV_PATH", "page=$url extracted=$extractedUrl referer=$currentVideoReferer")
                 }
-            } else if (url.contains("rou.video") || url.contains("rouva")) {
-                extractedUrl = VideoExtractor.extractRouVideo(rawHtml)
+            } else if (isRouVideoUrl(url)) {
+                extractedUrl = VideoExtractor.extractRouVideo(rawHtml, url)
+                if (extractedUrl != null) {
+                    currentVideoReferer = originForUrl(url)
+                    android.util.Log.d("ROU_PLAYER", "page=$url extracted=$extractedUrl")
+                }
             } else if (url.contains("avjoy.me")) {
                 extractedUrl = VideoExtractor.extractAvJoy(rawHtml)
                 if (extractedUrl != null) {
@@ -4862,6 +4907,7 @@ class MainActivity : LocalizedActivity() {
 
     private fun startStripchatRecordingStatusMonitor(sourceUrl: String) {
         stripchatRecordingStatusUrl = sourceUrl
+        stripchatRecordingModelId = 0L
         stripchatOfflineConfirmations = 0
         stripchatLastOfflineConfirmationAt = 0L
         stripchatRecordingStatusCheckInFlight.set(false)
@@ -4876,6 +4922,7 @@ class MainActivity : LocalizedActivity() {
         stripchatRecordingStatusRunnable?.let(stripchatRecordingStatusHandler::removeCallbacks)
         stripchatRecordingStatusRunnable = null
         stripchatRecordingStatusUrl = ""
+        stripchatRecordingModelId = 0L
         stripchatOfflineConfirmations = 0
         stripchatLastOfflineConfirmationAt = 0L
         stripchatRecordingStatusCheckInFlight.set(false)
@@ -4978,23 +5025,17 @@ class MainActivity : LocalizedActivity() {
         sourceUrl: String,
         cookie: String,
     ): Boolean? {
-        val apiUrl = "https://stripchat.com/api/front/v2/models/username/" +
-            Uri.encode(username) + "/cam?uniq=${System.currentTimeMillis()}"
-        val request = okhttp3.Request.Builder()
-            .url(apiUrl)
-            .header(
-                "User-Agent",
-                "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36",
-            )
-            .header("Accept", "application/json")
-            .header("Referer", sourceUrl)
-            .apply { if (cookie.isNotBlank()) header("Cookie", cookie) }
-            .build()
         return try {
-            stripchatRecordingStatusClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use null
-                val root = org.json.JSONObject(response.body?.string().orEmpty())
-                val user = root.optJSONObject("user")?.optJSONObject("user") ?: return@use null
+            val snapshot = StripchatStatusApi.fetchSnapshot(
+                client = stripchatRecordingStatusClient,
+                username = username,
+                referer = sourceUrl,
+                cookie = cookie,
+                knownModelId = stripchatRecordingModelId,
+            ) ?: return null
+            stripchatRecordingModelId = snapshot.modelId
+            val root = snapshot.root
+            val user = root.optJSONObject("user")?.optJSONObject("user") ?: return null
                 val roomStatus = user.optString("status").trim().lowercase(java.util.Locale.US)
                 val showMode = root.optJSONObject("cam")
                     ?.optJSONObject("show")
@@ -5019,14 +5060,13 @@ class MainActivity : LocalizedActivity() {
                         "isOnline=${user.optBoolean("isOnline", false)} " +
                         "status=$roomStatus showMode=$showMode",
                 )
-                when {
-                    roomStatus in unavailableModes -> false
-                    showMode in unavailableModes -> false
-                    user.optBoolean("isLive", false) -> true
-                    user.has("isLive") -> false
-                    user.optBoolean("isOnline", false) -> true
-                    else -> null
-                }
+            when {
+                roomStatus in unavailableModes -> false
+                showMode in unavailableModes -> false
+                user.optBoolean("isLive", false) -> true
+                user.has("isLive") -> false
+                user.optBoolean("isOnline", false) -> true
+                else -> null
             }
         } catch (e: Exception) {
             android.util.Log.w("STRIPCHAT_RECORD_STATUS", "$username lookup failed", e)
@@ -5397,6 +5437,13 @@ class MainActivity : LocalizedActivity() {
     }
     
     override fun onBackPressed() {
+        if (returnToSalesRanking) {
+            // SalesRankingActivity 留在目前 task 的下一層；直接結束這個搜尋頁，
+            // 讓使用者回到原本的排行與 RecyclerView 滾動位置。
+            returnToSalesRanking = false
+            finish()
+            return
+        }
         // 全螢幕模式中，返回鍵先退出全螢幕
         if (customView != null) {
             webView.webChromeClient?.onHideCustomView()

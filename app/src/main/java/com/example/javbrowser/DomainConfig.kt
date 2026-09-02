@@ -44,7 +44,15 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
 
     fun getJableDomain(): String = adFilterRules.getDomains()["jable"] ?: "jable.tv"
 
-    fun getRouVideoDomain(): String = adFilterRules.getDomains()["rou_video"] ?: "rouva3.xyz"
+    fun getRouVideoDomain(): String {
+        val configured = adFilterRules.getDomains()["rou_video"].orEmpty()
+        // 已安裝版本可能仍快取 rouva1~rouva7；新版站點已宣告 rouva8 為目前網域。
+        return if (Regex("^rouva[1-7]\\.xyz$", RegexOption.IGNORE_CASE).matches(configured)) {
+            "rouva8.xyz"
+        } else {
+            configured.ifBlank { "rouva8.xyz" }
+        }
+    }
 
     fun getAvJoyDomain(): String = adFilterRules.getDomains()["avjoy"] ?: "avjoy.me"
 

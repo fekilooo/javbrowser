@@ -124,6 +124,20 @@ class AdFilterRules(private val context: Context) {
                 { "selector": "iframe[src*=\"whitetrafsa.com\"]" },
                 { "selector": "iframe[src*=\"mavrtracktor.com\"]" }
               ]
+            },
+            "rouva8.xyz": {
+              "requestBlock": [
+                { "hostSuffix": "rouva8.xyz", "pathPrefix": "/api/hop/" },
+                { "hostSuffix": "magsrv.com" },
+                { "hostSuffix": "tsyndicate.com" }
+              ],
+              "navigationBlock": [
+                { "hostSuffix": "rouva8.xyz", "pathPrefix": "/api/hop/" }
+              ],
+              "domRemove": [
+                { "selector": "div:has(> a[href*=\"/api/hop/\"])" },
+                { "selector": "a[href*=\"/api/hop/\"]" }
+              ]
             }
         }
         """.trimIndent()
@@ -141,7 +155,9 @@ class AdFilterRules(private val context: Context) {
             "creative.19sex.live",
             "realsrv.com",
             "labadena.com",
-            "go.mavrtracktor.com"
+            "go.mavrtracktor.com",
+            "magsrv.com",
+            "tsyndicate.com"
         )
 
         private val DEFAULT_RULES = """
@@ -151,7 +167,7 @@ class AdFilterRules(private val context: Context) {
           "domains": {
             "missav": "missav.ws",
             "jable": "jable.tv",
-            "rou_video": "rouva3.xyz",
+            "rou_video": "rouva8.xyz",
             "avjoy": "avjoy.me",
             "7mmtv": "7mmtv.sx",
             "avple": "avple.tv",

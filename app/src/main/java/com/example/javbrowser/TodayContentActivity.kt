@@ -28,6 +28,7 @@ class TodayContentActivity : LocalizedActivity() {
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: Button
     private lateinit var btnBookmark: Button
+    private lateinit var btnCrossSearch: Button
     private lateinit var favoritesManager: FavoritesManager
 
     private var targetUrl: String = ""
@@ -51,11 +52,16 @@ class TodayContentActivity : LocalizedActivity() {
         tvTitle = findViewById(R.id.tv_today_content_title)
         btnBack = findViewById(R.id.btn_back_today_content)
         btnBookmark = findViewById(R.id.btn_close_today_content)
+        btnCrossSearch = findViewById(R.id.btn_today_content_cross_search)
 
         targetUrl = intent.getStringExtra(EXTRA_URL).orEmpty()
         targetTitle = intent.getStringExtra(EXTRA_TITLE)?.takeIf { it.isNotBlank() } ?: targetUrl
         targetThumb = intent.getStringExtra(EXTRA_THUMB)?.takeIf { it.isNotBlank() }
         targetJavCode = intent.getStringExtra(EXTRA_JAV_CODE)?.takeIf { it.isNotBlank() }
+
+        if (targetJavCode.isNullOrBlank()) {
+            targetJavCode = CrossSiteSearchUi.extractCode(targetTitle + " " + targetUrl)
+        }
 
         tvTitle.text = targetTitle.ifBlank { "新着內容" }
 
@@ -63,6 +69,10 @@ class TodayContentActivity : LocalizedActivity() {
             if (webView.canGoBack()) webView.goBack() else finish()
         }
         btnBookmark.setOnClickListener { toggleBookmark() }
+        btnCrossSearch.visibility = if (targetJavCode.isNullOrBlank()) View.GONE else View.VISIBLE
+        btnCrossSearch.setOnClickListener {
+            CrossSiteSearchUi.show(this, targetJavCode.orEmpty().ifBlank { targetTitle + " " + targetUrl })
+        }
         refreshBookmarkButton()
 
         setupWebView()

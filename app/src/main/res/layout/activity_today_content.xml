@@ -55,10 +55,29 @@
         android:progressTint="#42A5F5"
         android:visibility="gone" />
 
-    <WebView
-        android:id="@+id/webview_today_content"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <WebView
+            android:id="@+id/webview_today_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/btn_today_content_cross_search"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="18dp"
+            android:layout_marginBottom="22dp"
+            android:backgroundTint="#7B1FA2"
+            android:elevation="10dp"
+            android:text="🔍"
+            android:textSize="25sp"
+            android:contentDescription="跨站搜尋"
+            android:visibility="gone" />
+    </FrameLayout>
 
 </LinearLayout>

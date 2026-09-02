@@ -310,8 +310,6 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         val shouldBypassProxy =
             referer.contains("missav", ignoreCase = true) ||
                 referer.contains("jable.tv", ignoreCase = true) ||
-                referer.contains("rou.video", ignoreCase = true) ||
-                referer.contains("rouva", ignoreCase = true) ||
                 referer.contains("avjoy", ignoreCase = true) ||
                 referer.contains("avtoday.io", ignoreCase = true)
         if (shouldBypassProxy) {

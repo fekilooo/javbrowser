@@ -283,6 +283,7 @@ class TodayNewActivity : LocalizedActivity() {
             val tvTitle: TextView   = view.findViewById(R.id.tv_today_title)
             val tvMeta: TextView    = view.findViewById(R.id.tv_today_meta)
             val btnBookmark: Button = view.findViewById(R.id.btn_today_bookmark)
+            val btnCrossSearch: Button = view.findViewById(R.id.btn_today_cross_search)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -313,6 +314,11 @@ class TodayNewActivity : LocalizedActivity() {
                 if (saved) favoritesManager.removeFavorite(item.url)
                 else favoritesManager.addFavorite(item.title, item.url, item.thumb, item.javCode)
                 refreshBookmarkBtn(holder.btnBookmark, item)
+            }
+
+            holder.btnCrossSearch.setOnClickListener {
+                val code = item.javCode.ifBlank { CrossSiteSearchUi.extractCode(item.title + " " + item.url) }
+                CrossSiteSearchUi.show(this@TodayNewActivity, code)
             }
 
             holder.itemView.setOnClickListener {

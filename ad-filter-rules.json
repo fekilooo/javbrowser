@@ -1,10 +1,10 @@
 {
-  "version": "3.1.0",
-  "lastUpdate": "2026-08-18T00:00:00Z",
+  "version": "3.2.0",
+  "lastUpdate": "2026-09-02T00:00:00Z",
   "domains": {
     "missav": "missav.ai",
     "jable": "jable.tv",
-    "rou_video": "rouva3.xyz",
+    "rou_video": "rouva8.xyz",
     "avjoy": "avjoy.me",
     "7mmtv": "7mmtv.sx",
     "avple": "avple.tv",
@@ -187,6 +187,20 @@
         { "selector": "iframe[src*=\"whitetrafsa.com\"]" },
         { "selector": "iframe[src*=\"mavrtracktor.com\"]" }
       ]
+          },
+          "rouva8.xyz": {
+            "requestBlock": [
+              { "hostSuffix": "rouva8.xyz", "pathPrefix": "/api/hop/" },
+              { "hostSuffix": "magsrv.com" },
+              { "hostSuffix": "tsyndicate.com" }
+            ],
+            "navigationBlock": [
+              { "hostSuffix": "rouva8.xyz", "pathPrefix": "/api/hop/" }
+            ],
+            "domRemove": [
+              { "selector": "div:has(> a[href*=\"/api/hop/\"])" },
+              { "selector": "a[href*=\"/api/hop/\"]" }
+            ]
           }
     }
   }

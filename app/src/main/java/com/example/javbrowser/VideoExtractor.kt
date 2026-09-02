@@ -153,7 +153,7 @@ object VideoExtractor {
         return null
     }
 
-    fun extractRouVideo(html: String): String? {
+    fun extractRouVideo(html: String, pageUrl: String? = null): String? {
         try {
             // New logic: Check for "ev" object with "d" and "k"
             val evBlockPattern = Pattern.compile("\"ev\"\\s*:\\s*\\{([^}]+)\\}")
@@ -185,9 +185,7 @@ object VideoExtractor {
                     if (urlMatcher.find()) {
                         var videoUrl = urlMatcher.group(1)
                         if (videoUrl != null) {
-                            // Replace index.jpg with index.m3u8 to get standard format
-                            videoUrl = videoUrl.replace("index.jpg", "index.m3u8")
-                            return videoUrl.replace("\\/", "/") // Unescape slashes if any
+                            return normalizeRouVideoUrl(videoUrl, pageUrl)
                         }
                     }
                 }
@@ -207,7 +205,7 @@ object VideoExtractor {
                     .replace("&lt;", "<")
                     .replace("&gt;", ">")
                     .replace("&quot;", "\"")
-                return url
+                return normalizeRouVideoUrl(url, pageUrl)
             }
         }
         return null
@@ -249,6 +247,21 @@ object VideoExtractor {
         }
 
         return null
+    }
+
+    private fun normalizeRouVideoUrl(value: String, pageUrl: String?): String {
+        val normalized = value.replace("\\/", "/")
+            .replace("&amp;", "&")
+            .replace("index.jpg", "index.m3u8")
+            .replace("index.png", "index.m3u8")
+        if (normalized.startsWith("http://", true) || normalized.startsWith("https://", true)) {
+            return normalized
+        }
+        if (normalized.startsWith("//")) return "https:$normalized"
+        return runCatching {
+            val base = java.net.URI(pageUrl.orEmpty())
+            base.resolve(normalized).toString()
+        }.getOrNull().takeUnless { it.isNullOrBlank() } ?: normalized
     }
 
     fun extractPigAV(html: String): String? {

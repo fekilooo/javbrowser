@@ -56,18 +56,35 @@
 
         </LinearLayout>
 
-        <!-- Bookmark button -->
-        <Button
-            android:id="@+id/btn_today_bookmark"
+        <!-- Bookmark / cross-site search buttons -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="📚"
-            android:textSize="18sp"
-            android:minWidth="0dp"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:backgroundTint="#333333" />
+            android:layout_marginStart="6dp"
+            android:orientation="vertical">
+            <Button
+                android:id="@+id/btn_today_bookmark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📚"
+                android:textSize="18sp"
+                android:minWidth="0dp"
+                android:paddingStart="9dp"
+                android:paddingEnd="9dp"
+                android:backgroundTint="#333333" />
+            <Button
+                android:id="@+id/btn_today_cross_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="🔍"
+                android:textSize="18sp"
+                android:minWidth="0dp"
+                android:paddingStart="9dp"
+                android:paddingEnd="9dp"
+                android:contentDescription="跨站搜尋"
+                android:backgroundTint="#493060" />
+        </LinearLayout>
 
     </LinearLayout>
 

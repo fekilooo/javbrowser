@@ -9,6 +9,7 @@ import java.net.URL
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
+import java.util.zip.InflaterInputStream
 
 /**
  * 本地 HTTP Proxy Server
@@ -113,6 +114,8 @@ class VideoProxyServer : NanoHTTPD(0) { // port=0 讓系統自動選空閒 port
         cookies: String,
         rangeHeader: String?
     ): Response {
+        val isRouStream = referer.contains("rou.video", ignoreCase = true) ||
+            referer.contains("rouva", ignoreCase = true)
         val connection = URL(realUrl).openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = CONNECT_TIMEOUT
@@ -135,7 +138,9 @@ class VideoProxyServer : NanoHTTPD(0) { // port=0 讓系統自動選空閒 port
                 originForUrl(referer)?.let { connection.setRequestProperty("Origin", it) }
                 connection.setRequestProperty("Accept", "application/vnd.apple.mpegurl,application/x-mpegURL,*/*")
             }
-            if (!rangeHeader.isNullOrEmpty()) {
+            // ROU 的 PNG 包裝必須取得完整檔案才能找到 roUd chunk；不要把播放器的
+            // Range 要求傳給上游，解包後再一次回傳完整片段。
+            if (!rangeHeader.isNullOrEmpty() && !isRouStream) {
                 connection.setRequestProperty("Range", rangeHeader)
             }
 
@@ -166,6 +171,46 @@ class VideoProxyServer : NanoHTTPD(0) { // port=0 讓系統自動選空閒 port
                     status,
                     contentType.ifEmpty { MIME_PLAINTEXT },
                     inputStream
+                )
+            }
+
+            if (isRouStream) {
+                val wrappedBytes = inputStream.readBytes()
+                val mediaBytes = unwrapRouPngPayload(wrappedBytes) ?: wrappedBytes
+                val finalUrl = connection.url.toString()
+                connection.disconnect()
+                val textHead = mediaBytes.take(16).toByteArray().toString(Charsets.UTF_8)
+                if (textHead.startsWith("#EXTM3U")) {
+                    val playlist = mediaBytes.toString(Charsets.UTF_8)
+                    val rewritten = rewriteM3u8(playlist, finalUrl, referer, cookies)
+                    val bytes = rewritten.toByteArray(Charsets.UTF_8)
+                    android.util.Log.i(
+                        "ROU_PLAYER",
+                        "decoded playlist wrapped=${mediaBytes !== wrappedBytes} bytes=${bytes.size} url=$finalUrl"
+                    )
+                    return newFixedLengthResponse(
+                        Response.Status.OK,
+                        "application/x-mpegURL",
+                        ByteArrayInputStream(bytes),
+                        bytes.size.toLong(),
+                    )
+                }
+
+                val decodedMime = when {
+                    mediaBytes.size >= 12 &&
+                        mediaBytes.copyOfRange(4, 8).toString(Charsets.US_ASCII) == "ftyp" -> "video/mp4"
+                    mediaBytes.firstOrNull() == 0x47.toByte() -> "video/mp2t"
+                    else -> "application/octet-stream"
+                }
+                android.util.Log.d(
+                    "ROU_PLAYER",
+                    "decoded segment wrapped=${mediaBytes !== wrappedBytes} type=$decodedMime bytes=${mediaBytes.size}"
+                )
+                return newFixedLengthResponse(
+                    Response.Status.OK,
+                    decodedMime,
+                    ByteArrayInputStream(mediaBytes),
+                    mediaBytes.size.toLong(),
                 )
             }
 
@@ -245,6 +290,50 @@ class VideoProxyServer : NanoHTTPD(0) { // port=0 讓系統自動選空閒 port
     private fun isM3u8ContentType(contentType: String): Boolean {
         val lower = contentType.lowercase()
         return lower.contains("mpegurl") || lower.contains("x-mpegurl")
+    }
+
+    /**
+     * ROU 把 HLS manifest 與媒體片段放在 PNG 的自訂 roUd chunk 裡。
+     * chunk 第一個 byte 是旗標；bit 0 代表其餘 payload 使用 zlib/deflate 壓縮。
+     */
+    private fun unwrapRouPngPayload(bytes: ByteArray): ByteArray? {
+        val signature = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+        )
+        if (bytes.size < signature.size || !bytes.copyOfRange(0, signature.size).contentEquals(signature)) {
+            return null
+        }
+
+        var offset = signature.size
+        while (offset + 12 <= bytes.size) {
+            val length = ((bytes[offset].toInt() and 0xff) shl 24) or
+                ((bytes[offset + 1].toInt() and 0xff) shl 16) or
+                ((bytes[offset + 2].toInt() and 0xff) shl 8) or
+                (bytes[offset + 3].toInt() and 0xff)
+            if (length < 1) {
+                offset += 12 + length.coerceAtLeast(0)
+                continue
+            }
+            val dataStart = offset + 8
+            val dataEnd = dataStart + length
+            if (dataEnd + 4 > bytes.size) return null
+            val type = bytes.copyOfRange(offset + 4, offset + 8).toString(Charsets.US_ASCII)
+            if (type == "roUd") {
+                val flags = bytes[dataStart].toInt() and 0xff
+                val payload = bytes.copyOfRange(dataStart + 1, dataEnd)
+                return if ((flags and 1) != 0) {
+                    runCatching {
+                        InflaterInputStream(ByteArrayInputStream(payload)).use { it.readBytes() }
+                    }.onFailure {
+                        android.util.Log.w("ROU_PLAYER", "roUd inflate failed", it)
+                    }.getOrNull()
+                } else {
+                    payload
+                }
+            }
+            offset = dataEnd + 4
+        }
+        return null
     }
 
     /**

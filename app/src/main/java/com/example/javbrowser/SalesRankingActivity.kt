@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.HorizontalScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.work.Constraints
@@ -205,14 +206,28 @@ class SalesRankingActivity : LocalizedActivity() {
 
     private fun openInsideApp(url: String) {
         if (url.isBlank()) return
-        // MainActivity 已在排行頁下方暫停；沿用書籤頁的本機廣播路徑，
-        // 避免重新啟動 MainActivity 後首頁初始化覆蓋目標網址。
+        // MainActivity 已在排行頁下方暫停；先用本機廣播讓既有 WebView 載入網址。
         val navigation = Intent(MainActivity.ACTION_LOAD_URL).apply {
             putExtra(MainActivity.EXTRA_URL, url)
         }
         androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this)
             .sendBroadcast(navigation)
-        finish()
+
+        // 不能直接指定 MainActivity：使用者可能已透過 AppIconManager 將它停用，
+        // 改用目前啟用中的 launcher alias，並把既有 MainActivity 置於排行頁上方。
+        // 使用 REORDER_TO_FRONT 保留 SalesRankingActivity，返回鍵即可回到原本滾動位置。
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent == null) {
+            Toast.makeText(this, "找不到 APP 主頁入口", Toast.LENGTH_SHORT).show()
+            return
+        }
+        launchIntent.putExtra(MainActivity.EXTRA_URL, url)
+            .putExtra(MainActivity.EXTRA_RETURN_TO_SALES, true)
+            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        runCatching { startActivity(launchIntent) }
+            .onFailure {
+                Toast.makeText(this, "無法開啟搜尋頁", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()

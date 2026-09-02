@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -723,23 +722,21 @@ class FavoritesActivity : LocalizedActivity() {
         val checkedAt = System.currentTimeMillis()
         val username = stripchatUsername(modelUrl)
             ?: return StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
-        val apiUrl = "https://stripchat.com/api/front/v2/models/username/" +
-            android.net.Uri.encode(username) + "/cam?uniq=${System.currentTimeMillis()}"
-        val requestBuilder = Request.Builder()
-            .url(apiUrl)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36")
-            .header("Accept", "application/json")
-            .header("Referer", modelUrl)
-        android.webkit.CookieManager.getInstance().getCookie("https://stripchat.com/")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { requestBuilder.header("Cookie", it) }
+        val cookie = android.webkit.CookieManager.getInstance()
+            .getCookie("https://stripchat.com/").orEmpty()
+        val cachedModelId = readStripchatStatusCache(modelUrl)?.modelId ?: 0L
 
         return try {
-            stripchatStatusClient.newCall(requestBuilder.build()).execute().use { response ->
-                if (!response.isSuccessful) return@use StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
-                val root = JSONObject(response.body?.string().orEmpty())
-                val user = root.optJSONObject("user")?.optJSONObject("user")
-                    ?: return@use StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
+            val snapshot = StripchatStatusApi.fetchSnapshot(
+                client = stripchatStatusClient,
+                username = username,
+                referer = modelUrl,
+                cookie = cookie,
+                knownModelId = cachedModelId,
+            ) ?: return StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
+            val root = snapshot.root
+            val user = root.optJSONObject("user")?.optJSONObject("user")
+                ?: return StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
                 val status = when {
                     user.optBoolean("isLive", false) -> StripchatLiveStatus.LIVE
                     user.has("isLive") -> StripchatLiveStatus.OFFLINE
@@ -770,9 +767,8 @@ class FavoritesActivity : LocalizedActivity() {
                     previewUrlThumbBig = user.optString("previewUrlThumbBig"),
                     avatarUrlThumb = user.optString("avatarUrlThumb"),
                     snapshotTimestamp = user.optLong("snapshotTimestamp", 0L),
-                    modelId = user.optLong("id", 0L)
+                    modelId = snapshot.modelId.takeIf { it > 0L } ?: user.optLong("id", 0L)
                 )
-            }
         } catch (e: Exception) {
             android.util.Log.w("STRIPCHAT_STATUS", "$username lookup failed", e)
             StripchatBookmarkInfo(StripchatLiveStatus.UNKNOWN, checkedAt)
