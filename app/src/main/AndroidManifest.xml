@@ -34,7 +34,7 @@
         android:theme="@style/Theme.JAVBrowser"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".nativeapp.NativeMainActivity"
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
@@ -72,11 +72,13 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <activity android:name=".MainActivity" android:exported="false" />
+        <activity android:name=".nativeapp.web.SourceVerificationActivity" android:exported="false" />
         
         <!-- Activity Aliases for Icon Switching -->
         <activity-alias
             android:name=".MainActivityCalculator"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".nativeapp.NativeMainActivity"
             android:icon="@drawable/ic_launcher_calculator"
             android:label="Calculator"
             android:enabled="false"
@@ -89,7 +91,7 @@
         
         <activity-alias
             android:name=".MainActivityNotes"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".nativeapp.NativeMainActivity"
             android:icon="@drawable/ic_launcher_notes"
             android:label="Notes"
             android:enabled="false"
@@ -102,7 +104,7 @@
         
         <activity-alias
             android:name=".MainActivityFile"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".nativeapp.NativeMainActivity"
             android:icon="@drawable/ic_launcher_file"
             android:label="File Manager"
             android:enabled="false"

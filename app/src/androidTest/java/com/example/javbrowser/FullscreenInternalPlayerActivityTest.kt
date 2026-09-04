@@ -86,8 +86,9 @@ class FullscreenInternalPlayerActivityTest {
                     val webView = findWebView(activity.window.decorView.rootView as android.view.ViewGroup)
                     webView.evaluateJavascript(
                         "try{Object.defineProperty(video,'paused',{get:function(){return false},configurable:true})}catch(e){};" +
+                            "try{Object.defineProperty(HTMLMediaElement.prototype,'paused',{get:function(){return false},configurable:true})}catch(e){};" +
                             "video.playbackRate=1;video.dispatchEvent(new PointerEvent('pointerdown'," +
-                            "{pointerId:7,pointerType:'touch',clientX:500,clientY:400,bubbles:true}))",
+                            "{pointerId:7,pointerType:'touch',isPrimary:true,clientX:500,clientY:400,bubbles:true}))",
                         null
                     )
                 }

@@ -1,0 +1,96 @@
+name: Android CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, rewrite/native-jav-client]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew test
+      - name: Debug build and lint
+        run: ./gradlew assembleDebug lintDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luma-debug-build
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/lint-baseline.xml
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: error
+
+  emulator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run instrumented tests on Android 34
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash .github/scripts/run-emulator-tests.sh
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luma-emulator-qa
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            app/build/reports/emulator-qa/
+          if-no-files-found: warn
+
+  live-source-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    continue-on-error: true
+    env:
+      LUMA_LIVE_SMOKE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test PPPD-526 against live sources
+        run: ./gradlew testDebugUnitTest --tests com.example.javbrowser.nativeapp.LiveSourceSmokeTest --info
+      - name: Upload live-source report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pppd-526-live-source-report
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn

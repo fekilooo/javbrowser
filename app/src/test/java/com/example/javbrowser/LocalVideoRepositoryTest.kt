@@ -12,7 +12,7 @@ class LocalVideoRepositoryTest {
             LocalVideoRepository.extractJavCode("SNOS-275 title-20260628-100228.ts")
         )
         assertEquals(
-            "REBD-1022",
+            "REBD-01022",
             LocalVideoRepository.extractJavCode("REBD-01-022 sample.mp4")
         )
         assertEquals(
