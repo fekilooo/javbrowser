@@ -56,6 +56,12 @@ class DomainConfig(private val adFilterRules: AdFilterRules) {
 
     fun getAvJoyDomain(): String = adFilterRules.getDomains()["avjoy"] ?: "avjoy.me"
 
+    /** Verified HEAD redirect on 2026-09-09: pigav.ws -> pigav.com. Preserve other custom domains. */
+    fun getPigAvDomain(): String {
+        val configured = adFilterRules.getDomains()["pigav"].orEmpty().trim().lowercase()
+        return if (configured.isBlank() || configured in setOf("pigav.ws", "www.pigav.ws")) "pigav.com" else configured
+    }
+
     fun get7MmTvDomain(): String =
         adFilterRules.getDomains()["7mmtv"] ?: DEFAULT_7MMTV_DOMAIN
 

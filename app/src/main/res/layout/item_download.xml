@@ -101,6 +101,18 @@
                 android:layout_height="wrap_content"
                 android:text="播放" />
 
+            <ImageButton
+                android:id="@+id/btn_download_choose_player"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_player_choice"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="#BB86FC"
+                android:contentDescription="選擇或變更播放器"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/btn_download_cancel"
                 android:layout_width="wrap_content"

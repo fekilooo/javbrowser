@@ -8,6 +8,15 @@
 
 JAV Browser combines a site-aware WebView browser with stream detection, an internal fullscreen player, external-player handoff, direct MP4/HLS downloads, a searchable bookmark library, local-video management, and cloud-updatable ad-filter rules.
 
+## Version 1.1.7 Highlights
+
+- Added a unified cross-site search workspace with grouped results, multi-page collection, source status reporting, saved searches, and improved Cloudflare challenge handling.
+- Improved the MISSAV and JABLE search providers, while adding dedicated parsers and fallbacks for AVJOY, PigAV, AVToday, JavHDPorn, 7MMTV, AVPLE, and Whos.tv.
+- Added a page-address copy action and standardized floating action icons.
+- Added bookmark cover recovery with persistent local caching, gallery-image fallback, protected-image request headers, failed-URL cooldowns, and manual repair by video code.
+- Added a selectable playback app for downloaded videos.
+- Redesigned the built-in player to preserve Android system navigation by default and added subtitle-friendly landscape controls plus an optional immersive maximum-picture mode.
+
 The current release is substantially different from the early browser-only version. It is now a multi-site media tool with dedicated handling for the websites listed below. Bookmarks, settings, download records, custom tags, and notes are stored locally on the device.
 
 > [!IMPORTANT]

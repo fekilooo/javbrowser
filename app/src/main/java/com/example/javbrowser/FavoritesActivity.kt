@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -28,6 +29,11 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import okhttp3.OkHttpClient
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.HttpException
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -77,6 +83,7 @@ class FavoritesActivity : LocalizedActivity() {
     private val customLabels = mutableSetOf<String>()
     private lateinit var adapter: FavoritesAdapter
     private lateinit var favoritesManager: FavoritesManager
+    private val favoriteCoverCache by lazy { FavoriteCoverCache(this) }
     private val fc2DomainConfig by lazy { DomainConfig(AdFilterRules(this)) }
     private var allFavorites: List<FavoriteItem> = emptyList()
     private var localVideosByCode: Map<String, List<LocalVideoFile>> = emptyMap()
@@ -1618,6 +1625,124 @@ class FavoritesActivity : LocalizedActivity() {
         return result
     }
 
+    private fun favoriteCoverCandidates(item: FavoriteItem): List<String> = buildList {
+        item.thumbnailUrl?.trim()?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let(::add)
+        item.galleryImages.forEach { candidate ->
+            candidate.trim().takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let(::add)
+        }
+    }.distinct()
+
+    private fun favoriteCoverModel(candidate: String, referer: String): Any {
+        val headers = com.bumptech.glide.load.model.LazyHeaders.Builder()
+            .addHeader("Referer", referer)
+            .addHeader("User-Agent", android.webkit.WebSettings.getDefaultUserAgent(this))
+        android.webkit.CookieManager.getInstance().getCookie(candidate)
+            ?.takeIf(String::isNotBlank)
+            ?.let { headers.addHeader("Cookie", it) }
+        return com.bumptech.glide.load.model.GlideUrl(candidate, headers.build())
+    }
+
+    private fun repairFavoriteCoverFromMetadata(item: FavoriteItem) {
+        val fc2Code = fc2CodeFor(item)
+        val code = fc2Code ?: item.javCode ?: JavDbScraper.extractJavCode(item.title)
+        if (code.isNullOrBlank()) {
+            android.widget.Toast.makeText(
+                this,
+                LanguageManager.text(this, "找不到番號，無法自動查詢封面", "No code found for automatic cover lookup"),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        android.widget.Toast.makeText(
+            this,
+            LanguageManager.text(this, "正在重新查詢封面…", "Looking up the cover again…"),
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+
+        fun applyDetail(detail: JavVideoDetail?) {
+            runOnUiThread {
+                val cover = detail?.coverUrl?.trim().orEmpty()
+                if (detail != null && cover.startsWith("http")) {
+                    val previousCandidates = favoriteCoverCandidates(item)
+                    favoriteCoverCache.clearForRetry(item.url, previousCandidates + cover)
+                    favoritesManager.updateFavoriteThumbnail(item.url, cover)
+                    favoritesManager.updateFavoriteDetail(item.url, detail)
+                    loadFavorites()
+                    android.widget.Toast.makeText(
+                        this,
+                        LanguageManager.text(this, "已找到新的封面", "A new cover was found"),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                } else if (fc2Code == null) {
+                    showJavDbManualWebViewDialog(item, code, replaceCover = true)
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        LanguageManager.text(this, "暫時找不到可用封面", "No usable cover is available right now"),
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+
+        if (fc2Code != null) {
+            MissavScraper(this, fc2DomainConfig).scrapeByCode(fc2Code) { result ->
+                applyDetail(result?.let {
+                    JavVideoDetail(
+                        code = fc2Code,
+                        title = it.title.removePrefix(fc2Code).trim(),
+                        coverUrl = it.coverUrl,
+                        date = it.releaseDate,
+                        duration = "",
+                        maker = it.maker,
+                        series = it.series,
+                        rating = "",
+                        genres = it.genres,
+                        actors = it.actors,
+                        detailUrl = it.pageUrl
+                    )
+                })
+            }
+        } else {
+            JavDbWebViewScraper(this).enrichFavorite(code, ::applyDetail)
+        }
+    }
+
+    private fun showCoverRepairDialog(item: FavoriteItem) {
+        val candidates = favoriteCoverCandidates(item)
+        val choices = mutableListOf<Pair<String, () -> Unit>>()
+        choices += LanguageManager.text(this, "重新嘗試所有封面", "Retry all cover sources") to {
+            favoriteCoverCache.clearForRetry(item.url, candidates)
+            loadFavorites()
+        }
+        if (fc2CodeFor(item) != null || item.javCode != null || JavDbScraper.extractJavCode(item.title) != null) {
+            choices += LanguageManager.text(this, "依番號重新查詢封面", "Find a new cover by code") to {
+                repairFavoriteCoverFromMetadata(item)
+            }
+        }
+        item.galleryImages.firstOrNull { it.startsWith("http://") || it.startsWith("https://") }?.let { gallery ->
+            choices += LanguageManager.text(this, "使用相簿第一張", "Use first gallery image") to {
+                favoriteCoverCache.clearForRetry(item.url, candidates)
+                favoritesManager.updateFavoriteThumbnail(item.url, gallery)
+                loadFavorites()
+            }
+        }
+        if (!item.thumbnailUrl.isNullOrBlank()) {
+            choices += LanguageManager.text(this, "清除失效封面網址", "Clear broken cover URL") to {
+                favoriteCoverCache.clearForRetry(item.url, candidates)
+                favoritesManager.updateFavoriteThumbnail(item.url, null)
+                loadFavorites()
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(LanguageManager.text(this, "修復封面", "Repair cover"))
+            .setItems(choices.map { it.first }.toTypedArray()) { _, index ->
+                choices[index].second.invoke()
+            }
+            .setNegativeButton(LanguageManager.text(this, "取消", "Cancel"), null)
+            .show()
+    }
+
     inner class FavoritesAdapter(
         private var items: MutableList<FavoriteItem>,
         private val onItemClick: (FavoriteItem) -> Unit
@@ -1657,7 +1782,9 @@ class FavoritesActivity : LocalizedActivity() {
             val chipJavhdChinese: TextView = view.findViewById(R.id.chip_javhd_chinese)
             val btnRetryCrosssite: TextView = view.findViewById(R.id.btn_retry_crosssite)
             val btnLocalPlay: android.widget.Button = view.findViewById(R.id.btn_local_play)
+            val btnRepairCover: android.widget.Button = view.findViewById(R.id.btn_repair_cover)
             val btnEditFavorite: android.widget.Button = view.findViewById(R.id.btn_edit_favorite)
+            var boundUrl: String = ""
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -1669,6 +1796,7 @@ class FavoritesActivity : LocalizedActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
+            holder.boundUrl = item.url
             val fc2Code = fc2CodeFor(item)
             holder.tvTitle.text = item.title
             bindStripchatLiveStatus(holder, item)
@@ -1783,8 +1911,18 @@ class FavoritesActivity : LocalizedActivity() {
                 if (isStripchatItem && !thumbnailToLoad.isNullOrEmpty()) View.VISIBLE else View.GONE
             com.bumptech.glide.Glide.with(holder.itemView.context)
                 .clear(holder.ivThumbnailBackground)
+            holder.btnRepairCover.visibility = View.GONE
+            holder.btnRepairCover.setOnClickListener {
+                showCoverRepairDialog(item)
+            }
+            holder.ivThumbnail.setOnLongClickListener(
+                if (isStripchatItem) null else View.OnLongClickListener {
+                    showCoverRepairDialog(item)
+                    true
+                }
+            )
 
-            if (!thumbnailToLoad.isNullOrEmpty()) {
+            if (isStripchatItem && !thumbnailToLoad.isNullOrEmpty()) {
                 val glide = com.bumptech.glide.Glide.with(holder.itemView.context)
                 val request = glide.load(thumbnailToLoad)
                     .placeholder(android.R.color.darker_gray)
@@ -1819,13 +1957,11 @@ class FavoritesActivity : LocalizedActivity() {
                 } else {
                     request.error(android.R.drawable.ic_menu_gallery)
                 }
-                if (isStripchatItem) {
-                    request.clone()
-                        .centerCrop()
-                        .into(holder.ivThumbnailBackground)
-                }
+                request.clone()
+                    .centerCrop()
+                    .into(holder.ivThumbnailBackground)
                 request.into(holder.ivThumbnail)
-            } else {
+            } else if (isStripchatItem) {
                 val iconRes = when {
                     item.url.contains("missav") -> android.R.drawable.ic_menu_camera
                     item.url.contains("jable") -> android.R.drawable.ic_menu_gallery
@@ -1833,6 +1969,8 @@ class FavoritesActivity : LocalizedActivity() {
                     else -> android.R.drawable.ic_menu_gallery
                 }
                 holder.ivThumbnail.setImageResource(iconRes)
+            } else {
+                bindRecoverableCover(holder, item)
             }
 
             // 解析番號（優先 javCode，其次從 JavTrailers/JavDB URL 解析，最後從標題解析）
@@ -1860,10 +1998,8 @@ class FavoritesActivity : LocalizedActivity() {
                 }
 
             // 點封面 → 開 gallery 檢視器（封面圖 + swiper 圖）
-            val galleryAll = buildList<String> {
-                if (!item.thumbnailUrl.isNullOrEmpty()) add(item.thumbnailUrl!!)
-                addAll(item.galleryImages)
-            }
+            fun currentGallerySources(): List<String> =
+                favoriteCoverCandidates(item).filter(favoriteCoverCache::shouldTry)
             android.util.Log.e("GALLERY_DEBUG",
                 "bind: title=${item.title} thumb=${item.thumbnailUrl} gallery=${item.galleryImages.size} code=$resolvedJavCode")
             if (item.galleryImages.isNotEmpty())
@@ -1879,6 +2015,11 @@ class FavoritesActivity : LocalizedActivity() {
                 item.galleryImages.isNotEmpty() -> {
                     // 已有 gallery：直接開圖庫
                     holder.ivThumbnail.setOnClickListener {
+                        val galleryAll = currentGallerySources()
+                        if (galleryAll.isEmpty()) {
+                            showCoverRepairDialog(item)
+                            return@setOnClickListener
+                        }
                         android.util.Log.e("GALLERY_DEBUG", "thumb clicked → showGalleryDialog imgs=${galleryAll.size}")
                         showGalleryDialog(holder.itemView.context, galleryAll, item.url,
                             javCode = resolvedJavCode, hasExtraGallery = true,
@@ -1888,6 +2029,7 @@ class FavoritesActivity : LocalizedActivity() {
                 resolvedJavCode != null && fc2Code == null -> {
                     // 無 gallery（只有封面或完全沒圖）但有番號 → 先開 dialog，再 in-dialog 抓取
                     holder.ivThumbnail.setOnClickListener {
+                        val galleryAll = currentGallerySources()
                         android.util.Log.e("GALLERY_DEBUG", "thumb clicked → open dialog + auto-scrape $resolvedJavCode")
                         val autoScrapeCode = resolvedJavCode.takeIf {
                             !favoritesManager.hasGalleryLookupAttempted(item.url)
@@ -1897,9 +2039,14 @@ class FavoritesActivity : LocalizedActivity() {
                             trailerUrl = item.trailerUrl, autoScrapeCode = autoScrapeCode)
                     }
                 }
-                galleryAll.isNotEmpty() -> {
+                favoriteCoverCandidates(item).isNotEmpty() -> {
                     // 有封面但沒法解析番號：開圖庫，讓 in-dialog 🔄 可手動輸入
                     holder.ivThumbnail.setOnClickListener {
+                        val galleryAll = currentGallerySources()
+                        if (galleryAll.isEmpty()) {
+                            showCoverRepairDialog(item)
+                            return@setOnClickListener
+                        }
                         showGalleryDialog(holder.itemView.context, galleryAll, item.url,
                             javCode = null, hasExtraGallery = false, trailerUrl = item.trailerUrl)
                     }
@@ -2199,6 +2346,92 @@ class FavoritesActivity : LocalizedActivity() {
             }
 
             // (舊的單圖 PhotoView 已移除，改用 showGalleryDialog 統一處理)
+        }
+
+        private fun bindRecoverableCover(holder: ViewHolder, item: FavoriteItem) {
+            val glide = com.bumptech.glide.Glide.with(holder.itemView.context)
+            glide.clear(holder.ivThumbnail)
+            val candidates = favoriteCoverCandidates(item)
+            val availableCandidates = candidates.filter(favoriteCoverCache::shouldTry)
+            val localFile = favoriteCoverCache.cachedFile(item.url)
+
+            fun remoteRequest(index: Int): com.bumptech.glide.RequestBuilder<Bitmap> {
+                val candidate = availableCandidates[index]
+                val isLast = index == availableCandidates.lastIndex
+                var request = glide.asBitmap()
+                    .load(favoriteCoverModel(candidate, item.url))
+                    .listener(object : RequestListener<Bitmap> {
+                        override fun onLoadFailed(
+                            error: GlideException?,
+                            model: Any?,
+                            target: Target<Bitmap>,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            val permanent = error?.rootCauses?.filterIsInstance<HttpException>()
+                                ?.any { it.statusCode == 404 || it.statusCode == 410 } == true
+                            favoriteCoverCache.markFailed(candidate, permanent)
+                            if (isLast && holder.boundUrl == item.url) {
+                                holder.btnRepairCover.visibility = View.VISIBLE
+                            }
+                            return false
+                        }
+
+                        override fun onResourceReady(
+                            resource: Bitmap,
+                            model: Any,
+                            target: Target<Bitmap>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            favoriteCoverCache.markSucceeded(candidate)
+                            favoriteCoverCache.saveAsync(item.url, resource)
+                            if (holder.boundUrl == item.url) holder.btnRepairCover.visibility = View.GONE
+                            return false
+                        }
+                    })
+                request = if (!isLast) request.error(remoteRequest(index + 1))
+                    else request.error(android.R.drawable.ic_menu_gallery)
+                return request
+            }
+
+            val request = if (localFile != null) {
+                var localRequest = glide.asBitmap().load(localFile)
+                    .listener(object : RequestListener<Bitmap> {
+                        override fun onLoadFailed(
+                            error: GlideException?,
+                            model: Any?,
+                            target: Target<Bitmap>,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            favoriteCoverCache.delete(item.url)
+                            return false
+                        }
+
+                        override fun onResourceReady(
+                            resource: Bitmap,
+                            model: Any,
+                            target: Target<Bitmap>?,
+                            dataSource: DataSource,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            localFile.setLastModified(System.currentTimeMillis())
+                            return false
+                        }
+                    })
+                localRequest = if (availableCandidates.isNotEmpty()) localRequest.error(remoteRequest(0))
+                    else localRequest.error(android.R.drawable.ic_menu_gallery)
+                localRequest
+            } else if (availableCandidates.isNotEmpty()) {
+                remoteRequest(0)
+            } else {
+                if (candidates.isNotEmpty()) holder.btnRepairCover.visibility = View.VISIBLE
+                glide.asBitmap().load(android.R.drawable.ic_menu_gallery)
+            }
+
+            request
+                .placeholder(android.R.color.darker_gray)
+                .centerCrop()
+                .into(holder.ivThumbnail)
         }
 
         /** 刪除指定位置，回傳被刪除的項目（供復原使用） */
@@ -2838,7 +3071,11 @@ class FavoritesActivity : LocalizedActivity() {
     // 方案C：偵測 Verification Failed 時顯示引導按鈕讓用戶手動通過
 
     @android.annotation.SuppressLint("SetJavaScriptEnabled")
-    private fun showJavDbManualWebViewDialog(item: FavoriteItem, javCode: String) {
+    private fun showJavDbManualWebViewDialog(
+        item: FavoriteItem,
+        javCode: String,
+        replaceCover: Boolean = false
+    ) {
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val dialog  = android.app.Dialog(this)
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
@@ -3039,8 +3276,12 @@ class FavoritesActivity : LocalizedActivity() {
                                         function mv(){for(var i=0;i<arguments.length;i++){var el=fs(arguments[i]);if(el&&el.nextElementSibling)return el.nextElementSibling.textContent.trim();}return '';}
                                         function ml(){for(var i=0;i<arguments.length;i++){var el=fs(arguments[i]);if(el&&el.nextElementSibling){var lk=el.nextElementSibling.querySelectorAll('a'),r=[];for(var k=0;k<lk.length;k++){var t=lk[k].textContent.trim();if(t)r.push(t);}if(r.length)return r;}}return [];}
                                         function ea(){for(var i=0;i<arguments.length;i++){var el=fs(arguments[i]);if(!el||!el.nextElementSibling)continue;var lk=el.nextElementSibling.querySelectorAll('a'),r=[];for(var k=0;k<lk.length;k++){var n=lk[k].textContent.trim();if(!n)continue;var sy=lk[k].nextElementSibling;var s=(sy&&sy.classList&&sy.classList.contains('symbol'))?sy.textContent.trim():'';r.push(n+s);}if(r.length)return r;}return [];}
+                                        function abs(v){try{return v?new URL(v,location.href).href:'';}catch(e){return '';}}
                                         var te=document.querySelector('.title strong')||document.querySelector('.video-detail-header h2');
-                                        return {title:te?te.textContent.trim():'',releaseDate:mv('\u65E5\u671F:','\u767C\u884C\u65E5\u671F:','Released Date:'),rating:mv('\u8A55\u5206:','Rating:').trim(),maker:mv('\u7247\u5546:','\u767C\u884C\u5546:','Maker:'),series:mv('\u7CFB\u5217:','Series:'),genres:ml('\u985E\u5225:','\u6A19\u7C64:','Tags:'),actors:ea('\u6F14\u54E1:','\u5973\u512A:','Actor(s):')};
+                                        var ci=document.querySelector('.video-cover img,.column-video-cover img,.cover img');
+                                        var cm=document.querySelector('meta[property="og:image"],meta[name="twitter:image"]');
+                                        var cover=ci?(ci.currentSrc||ci.src||ci.getAttribute('data-src')||''):(cm?cm.content:'');
+                                        return {title:te?te.textContent.trim():'',coverUrl:abs(cover),releaseDate:mv('\u65E5\u671F:','\u767C\u884C\u65E5\u671F:','Released Date:'),rating:mv('\u8A55\u5206:','Rating:').trim(),maker:mv('\u7247\u5546:','\u767C\u884C\u5546:','Maker:'),series:mv('\u7CFB\u5217:','Series:'),genres:ml('\u985E\u5225:','\u6A19\u7C64:','Tags:'),actors:ea('\u6F14\u54E1:','\u5973\u512A:','Actor(s):')};
                                     })()
                                 """.trimIndent()
                                 wv.evaluateJavascript(js) { result ->
@@ -3054,6 +3295,7 @@ class FavoritesActivity : LocalizedActivity() {
                                         val detail = JavVideoDetail(
                                             code = javCode,
                                             title = obj.optString("title", ""),
+                                            coverUrl = obj.optString("coverUrl", ""),
                                             date = obj.optString("releaseDate", ""),
                                             duration = "",
                                             maker = obj.optString("maker", ""),
@@ -3063,6 +3305,13 @@ class FavoritesActivity : LocalizedActivity() {
                                             detailUrl = "https://javdb.com$detailHref"
                                         )
                                         step = "done"
+                                        if (replaceCover && detail.coverUrl.startsWith("http")) {
+                                            favoriteCoverCache.clearForRetry(
+                                                item.url,
+                                                favoriteCoverCandidates(item) + detail.coverUrl
+                                            )
+                                            favoritesManager.updateFavoriteThumbnail(item.url, detail.coverUrl)
+                                        }
                                         favoritesManager.updateFavoriteDetail(item.url, detail)
                                         tvStatus.text = "✅ 查詢成功，即將關閉..."
                                         handler.postDelayed({

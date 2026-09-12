@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class FavoritesManager(context: Context) {
+    private val appContext = context.applicationContext
     private val prefs: SharedPreferences = context.getSharedPreferences("favorites_prefs", Context.MODE_PRIVATE)
     private val KEY_FAVORITES = "favorites_list"
     private val KEY_GALLERY_LOOKUP_ATTEMPTED = "gallery_lookup_attempted_urls"
@@ -45,6 +46,15 @@ class FavoritesManager(context: Context) {
         favorites.removeAll { it.url == url }
         saveFavorites(favorites)
         clearGalleryLookupAttempted(url)
+        FavoriteCoverCache(appContext).delete(url)
+    }
+
+    fun updateFavoriteThumbnail(url: String, thumbnailUrl: String?) {
+        val list = getFavorites().toMutableList()
+        val index = list.indexOfFirst { it.url == url }
+        if (index < 0) return
+        list[index] = list[index].copy(thumbnailUrl = thumbnailUrl?.trim()?.takeIf(String::isNotEmpty))
+        saveFavorites(list)
     }
 
     /** 更新書籤的 gallery 縮圖列表 */

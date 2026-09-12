@@ -13,7 +13,7 @@ import kotlin.math.min
 class LocalVideoHttpServer(
     context: Context,
     private val sourceUri: Uri
-) : NanoHTTPD(0) {
+) : NanoHTTPD("127.0.0.1", 0) {
     private val appContext = context.applicationContext
     private val sourceName: String by lazy { querySourceName() }
 

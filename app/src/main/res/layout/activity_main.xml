@@ -93,9 +93,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 跨站搜尋：只在辨識到番號時顯示，浮在網頁右下角，不佔用頂部瀏覽空間。 -->
-    <Button
-        android:id="@+id/btn_cross_site_search"
+    <!-- 右下角操作：複製目前網址；跨站搜尋在其上方，互不遮擋。 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_copy_page_url"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:layout_marginEnd="14dp"
@@ -104,13 +104,44 @@
         android:insetTop="0dp"
         android:insetBottom="0dp"
         android:minHeight="0dp"
-        android:paddingStart="0dp"
-        android:paddingEnd="0dp"
-        android:contentDescription="跨站搜尋"
-        android:text="🔎"
-        android:textSize="20sp"
+        android:minWidth="0dp"
+        android:padding="0dp"
+        android:contentDescription="複製目前網頁網址"
+        android:text=""
         android:visibility="gone"
+        app:icon="@drawable/ic_copy_page_url"
+        app:iconSize="24dp"
+        app:iconPadding="0dp"
+        app:iconGravity="textStart"
+        app:iconTint="#24152B"
+        app:backgroundTint="#BB86FC"
+        app:cornerRadius="26dp"
         app:layout_constraintBottom_toTopOf="@id/tv_footer_github"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_cross_site_search"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="10dp"
+        android:elevation="8dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:padding="0dp"
+        android:contentDescription="跨站搜尋"
+        android:text=""
+        android:visibility="gone"
+        app:icon="@drawable/ic_unified_search"
+        app:iconSize="24dp"
+        app:iconPadding="0dp"
+        app:iconGravity="textStart"
+        app:iconTint="#24152B"
+        app:backgroundTint="#BB86FC"
+        app:cornerRadius="26dp"
+        app:layout_constraintBottom_toTopOf="@id/btn_copy_page_url"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Play Button (Top Right, visible when video detected) -->

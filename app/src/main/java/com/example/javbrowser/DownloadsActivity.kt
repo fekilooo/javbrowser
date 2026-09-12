@@ -112,6 +112,7 @@ class DownloadsActivity : LocalizedActivity() {
         )
         adapter = DownloadsAdapter(
             onOpen = ::openDownload,
+            onChoosePlayer = { openDownload(it, chooseAgain = true) },
             onCancel = ::cancelDownload,
             onRetry = ::retryDownload,
             onDelete = ::confirmDelete
@@ -341,9 +342,11 @@ class DownloadsActivity : LocalizedActivity() {
         }
     }
 
-    private fun openDownload(record: VideoDownloadRecord) {
+    private fun openDownload(record: VideoDownloadRecord) = openDownload(record, chooseAgain = false)
+
+    private fun openDownload(record: VideoDownloadRecord, chooseAgain: Boolean) {
         val uri = record.fileUri?.let(Uri::parse) ?: return
-        LocalVideoPlayback.openExternal(this, uri)
+        LocalVideoPlayback.openDownload(this, uri, record.fileName ?: record.title, chooseAgain)
     }
 
     private fun cancelDownload(record: VideoDownloadRecord) {
@@ -477,6 +480,7 @@ class DownloadsActivity : LocalizedActivity() {
 
     private class DownloadsAdapter(
         private val onOpen: (VideoDownloadRecord) -> Unit,
+        private val onChoosePlayer: (VideoDownloadRecord) -> Unit,
         private val onCancel: (VideoDownloadRecord) -> Unit,
         private val onRetry: (VideoDownloadRecord) -> Unit,
         private val onDelete: (VideoDownloadRecord) -> Unit
@@ -517,6 +521,7 @@ class DownloadsActivity : LocalizedActivity() {
             private val fileInfo: TextView = view.findViewById(R.id.tv_download_file_info)
             private val location: TextView = view.findViewById(R.id.tv_download_location)
             private val open: Button = view.findViewById(R.id.btn_download_open)
+            private val choosePlayer: android.widget.ImageButton = view.findViewById(R.id.btn_download_choose_player)
             private val cancel: Button = view.findViewById(R.id.btn_download_cancel)
             private val retry: Button = view.findViewById(R.id.btn_download_retry)
             private val delete: Button = view.findViewById(R.id.btn_download_delete)
@@ -625,6 +630,9 @@ class DownloadsActivity : LocalizedActivity() {
                     .format(Date(record.createdAt))
                 location.text = "$time · ${LanguageManager.storageLocation(itemView.context, record.storageLocation)}"
                 open.visibility = if (record.status == DownloadRepository.STATUS_COMPLETED) View.VISIBLE else View.GONE
+                choosePlayer.visibility = open.visibility
+                choosePlayer.contentDescription = LanguageManager.text(itemView.context, "選擇或變更播放器", "Choose or change player")
+                androidx.appcompat.widget.TooltipCompat.setTooltipText(choosePlayer, choosePlayer.contentDescription)
                 cancel.visibility = if (
                     record.status == DownloadRepository.STATUS_PENDING ||
                     record.status == DownloadRepository.STATUS_DOWNLOADING
@@ -647,6 +655,7 @@ class DownloadsActivity : LocalizedActivity() {
                 }
                 delete.visibility = if (cancel.visibility == View.GONE) View.VISIBLE else View.GONE
                 open.setOnClickListener { onOpen(record) }
+                choosePlayer.setOnClickListener { onChoosePlayer(record) }
                 cancel.setOnClickListener { onCancel(record) }
                 retry.setOnClickListener { onRetry(record) }
                 delete.setOnClickListener { onDelete(record) }

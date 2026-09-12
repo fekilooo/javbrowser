@@ -31,6 +31,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         private const val PLAYER_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         private const val STATE_ORIENTATION_LOCK_MODE = "orientation_lock_mode"
+        private const val PLAYER_UI_PREFERENCES = "internal_player_ui"
+        private const val PREFERENCE_IMMERSIVE_MODE = "immersive_mode"
+        private const val PREFERENCE_MAX_PICTURE_MODE = "max_picture_mode"
         const val EXTRA_VIDEO_URL = "video_url"
         const val EXTRA_REFERER = "referer"
         const val EXTRA_THUMB_PIC_NUM = "thumb_pic_num"
@@ -53,12 +56,17 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
     private var playbackProxyServer: VideoProxyServer? = null
     @Volatile
     private var orientationLockMode = "auto"
+    @Volatile
+    private var immersiveMode = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         orientationLockMode = savedInstanceState?.getString(STATE_ORIENTATION_LOCK_MODE) ?: "auto"
+        val playerUiPreferences = getSharedPreferences(PLAYER_UI_PREFERENCES, MODE_PRIVATE)
+        immersiveMode = playerUiPreferences.getBoolean(PREFERENCE_IMMERSIVE_MODE, false)
+        val maxPictureMode = playerUiPreferences.getBoolean(PREFERENCE_MAX_PICTURE_MODE, false)
         requestedOrientation = if (orientationLockMode == "auto") {
             ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         } else {
@@ -69,7 +77,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
-        hideSystemUi()
+        applyPlayerSystemUi()
 
         val videoUrl = intent.getStringExtra(EXTRA_VIDEO_URL) ?: run {
             finish()
@@ -155,7 +163,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                 thumbnailConfig,
                 previewVttUrl,
                 isLocalPlayback,
-                enableQualitySelector
+                enableQualitySelector,
+                immersiveMode,
+                maxPictureMode
             ),
             "text/html",
             "UTF-8",
@@ -165,7 +175,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemUi()
+        if (hasFocus) applyPlayerSystemUi()
     }
 
     override fun onBackPressed() {
@@ -188,14 +198,22 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         super.onSaveInstanceState(outState)
     }
 
-    private fun hideSystemUi() {
-        window.decorView.systemUiVisibility =
+    private fun applyPlayerSystemUi() {
+        window.navigationBarColor = android.graphics.Color.BLACK
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+        window.decorView.systemUiVisibility = if (immersiveMode) {
             View.SYSTEM_UI_FLAG_FULLSCREEN or
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        } else {
+            // Keep the device's normal Back/Home/Recents navigation area visible.
+            View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        }
     }
 
     private inner class PlayerBridge(
@@ -215,6 +233,24 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         @JavascriptInterface
         fun setMuted(muted: Boolean) {
             PrivacySettings(this@FullscreenInternalPlayerActivity).internalPlayerMuted = muted
+        }
+
+        @JavascriptInterface
+        fun setImmersiveMode(enabled: Boolean): Boolean {
+            immersiveMode = enabled
+            getSharedPreferences(PLAYER_UI_PREFERENCES, MODE_PRIVATE).edit()
+                .putBoolean(PREFERENCE_IMMERSIVE_MODE, enabled)
+                .apply()
+            runOnUiThread { applyPlayerSystemUi() }
+            return enabled
+        }
+
+        @JavascriptInterface
+        fun setMaxPictureMode(enabled: Boolean): Boolean {
+            getSharedPreferences(PLAYER_UI_PREFERENCES, MODE_PRIVATE).edit()
+                .putBoolean(PREFERENCE_MAX_PICTURE_MODE, enabled)
+                .apply()
+            return enabled
         }
 
         @JavascriptInterface
@@ -590,7 +626,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         thumbnailConfig: MissAvThumbnailConfig?,
         previewVttUrl: String?,
         isLocalPlayback: Boolean,
-        enableQualitySelector: Boolean
+        enableQualitySelector: Boolean,
+        initialImmersiveMode: Boolean,
+        initialMaxPictureMode: Boolean
     ): String {
         val videoUrlJson = JSONObject.quote(videoUrl)
         val initialOrientationModeJson = JSONObject.quote(orientationLockMode)
@@ -639,6 +677,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
             if (isLocalPlayback) "本地內建播放器：載入中" else "全螢幕內建播放器：載入中"
         }
         val closeLabel = if (uiEnglish) "Close" else "關閉"
+        val displayLabel = if (uiEnglish) "Display" else "畫面"
         val speedLabel = if (uiEnglish) "Speed" else "速度"
         val qualityLabel = if (uiEnglish) "Auto" else "自動"
         val qualitySelectorHtml = if (enableQualitySelector) {
@@ -657,6 +696,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
               <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
               <style>
                 html, body {
+                  --player-bottom-reserve: 0px;
                   margin: 0;
                   width: 100%;
                   height: 100%;
@@ -696,6 +736,40 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   gap: 6px;
                   flex: 0 0 auto;
                 }
+                #display-settings-wrap {
+                  position: relative;
+                }
+                #display-settings {
+                  min-width: 54px;
+                  padding: 0 9px;
+                }
+                #display-menu {
+                  position: absolute;
+                  right: 0;
+                  top: calc(100% + 6px);
+                  display: none;
+                  flex-direction: column;
+                  gap: 6px;
+                  width: 190px;
+                  padding: 8px;
+                  border: 1px solid rgba(255, 255, 255, .2);
+                  border-radius: 12px;
+                  background: rgba(16, 16, 16, .96);
+                  box-shadow: 0 5px 20px rgba(0, 0, 0, .55);
+                }
+                #display-menu.open {
+                  display: flex;
+                }
+                #display-menu button {
+                  width: 100%;
+                  padding: 0 12px;
+                  border-radius: 8px;
+                  text-align: left;
+                  white-space: nowrap;
+                }
+                #display-menu button.active {
+                  background: #8b00ff;
+                }
                 .loop-point {
                   width: 40px;
                   padding: 0;
@@ -715,6 +789,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   background: #000;
                   object-fit: contain;
                   touch-action: none;
+                  transition: height .18s ease;
                 }
                 #press-hold-speed {
                   position: absolute;
@@ -1248,6 +1323,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   }
                 }
                 @media (orientation: landscape) {
+                  html:not(.max-picture) #video {
+                    height: calc(100% - max(104px, var(--player-bottom-reserve)));
+                  }
                   #tip-list-drawer {
                     width: min(44vw, 440px);
                   }
@@ -1256,7 +1334,11 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                     grid-template-columns: minmax(95px, 1fr) auto minmax(145px, 1fr);
                     grid-template-rows: auto 42px;
                     gap: 3px 8px;
-                    padding: 5px 10px 6px;
+                    padding: 5px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+                  }
+                  html:not(.max-picture) #controls {
+                    background: #080808;
+                    border-top: 1px solid rgba(255, 255, 255, .12);
                   }
                   #progress-wrap {
                     grid-column: 1 / -1;
@@ -1349,6 +1431,13 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                     <button id="loop-a" class="loop-point" type="button" title="${if (uiEnglish) "Set or clear loop point A" else "設定或清除循環 A 點"}">A</button>
                     <button id="loop-b" class="loop-point" type="button" title="${if (uiEnglish) "Set or clear loop point B" else "設定或清除循環 B 點"}">B</button>
                     <button id="orientation" title="自動旋轉">🔓</button>
+                    <div id="display-settings-wrap">
+                      <button id="display-settings" type="button" title="${if (uiEnglish) "Player display settings" else "播放器畫面設定"}">$displayLabel</button>
+                      <div id="display-menu">
+                        <button id="picture-mode" type="button"></button>
+                        <button id="immersive-mode" type="button"></button>
+                      </div>
+                    </div>
                     <button id="close">$closeLabel</button>
                   </div>
                 </div>
@@ -1417,6 +1506,8 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   var url = $videoUrlJson;
                   var isHls = /\.m3u8($|\?)/i.test(url);
                   var initialOrientationMode = $initialOrientationModeJson;
+                  var immersiveMode = $initialImmersiveMode;
+                  var maxPictureMode = $initialMaxPictureMode;
                   var thumbnailConfig = $thumbnailConfigJson;
                   var previewVttUrl = $previewVttUrlJson;
                   var video = document.getElementById('video');
@@ -1453,6 +1544,10 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   var time = document.getElementById('time');
                   var mute = document.getElementById('mute');
                   var orientation = document.getElementById('orientation');
+                  var displaySettings = document.getElementById('display-settings');
+                  var displayMenu = document.getElementById('display-menu');
+                  var pictureModeButton = document.getElementById('picture-mode');
+                  var immersiveModeButton = document.getElementById('immersive-mode');
                   var quality = document.getElementById('quality');
                   var loopAButton = document.getElementById('loop-a');
                   var loopBButton = document.getElementById('loop-b');
@@ -2394,6 +2489,24 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   var topBar = document.getElementById('top');
                   var hideTimer = null;
                   var chromeVisible = true;
+                  function updatePlayerLayout() {
+                    document.documentElement.classList.toggle('max-picture', maxPictureMode);
+                    var landscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+                    var reserve = landscape && !maxPictureMode
+                      ? Math.ceil(controls.getBoundingClientRect().height)
+                      : 0;
+                    document.documentElement.style.setProperty('--player-bottom-reserve', reserve + 'px');
+                  }
+                  function updateDisplayModeUi() {
+                    pictureModeButton.textContent = maxPictureMode
+                      ? (uiEnglish ? 'Picture: Maximum' : '畫面：最大畫面')
+                      : (uiEnglish ? 'Picture: Subtitle friendly' : '畫面：字幕友善');
+                    immersiveModeButton.textContent = immersiveMode
+                      ? (uiEnglish ? 'System bar: Immersive' : '系統列：沉浸全螢幕')
+                      : (uiEnglish ? 'System bar: Visible' : '系統列：顯示');
+                    pictureModeButton.classList.toggle('active', maxPictureMode);
+                    immersiveModeButton.classList.toggle('active', immersiveMode);
+                  }
                   function showChrome() {
                     chromeVisible = true;
                     controls.style.opacity = '1';
@@ -2402,7 +2515,8 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                     topBar.style.pointerEvents = 'auto';
                     if (hideTimer) clearTimeout(hideTimer);
                     hideTimer = setTimeout(function() {
-                      if (!video.paused && !speedMenu.classList.contains('open') && !tipListDrawer.classList.contains('open')) {
+                      if (!video.paused && !speedMenu.classList.contains('open') &&
+                          !displayMenu.classList.contains('open') && !tipListDrawer.classList.contains('open')) {
                         controls.style.opacity = '0';
                         topBar.style.opacity = '0';
                         controls.style.pointerEvents = 'none';
@@ -2413,6 +2527,10 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   }
                   controls.style.transition = 'opacity .2s ease';
                   topBar.style.transition = 'opacity .2s ease';
+                  window.addEventListener('resize', function() { requestAnimationFrame(updatePlayerLayout); });
+                  window.addEventListener('orientationchange', function() {
+                    setTimeout(updatePlayerLayout, 120);
+                  });
 
                   function measureMm(mm) {
                     var probe = document.createElement('div');
@@ -2722,6 +2840,33 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                     setStatus(mode === 'auto' ? '自動旋轉' : (mode === 'landscape' ? '已鎖定橫屏' : '已鎖定豎屏'));
                     showChrome();
                   };
+                  displaySettings.onclick = function(event) {
+                    event.stopPropagation();
+                    displayMenu.classList.toggle('open');
+                    showChrome();
+                  };
+                  pictureModeButton.onclick = function(event) {
+                    event.stopPropagation();
+                    maxPictureMode = !maxPictureMode;
+                    AndroidPlayer.setMaxPictureMode(maxPictureMode);
+                    updateDisplayModeUi();
+                    updatePlayerLayout();
+                    setStatus(maxPictureMode
+                      ? (uiEnglish ? 'Maximum picture mode' : '最大畫面模式')
+                      : (uiEnglish ? 'Subtitle friendly mode' : '字幕友善模式'));
+                    showChrome();
+                  };
+                  immersiveModeButton.onclick = function(event) {
+                    event.stopPropagation();
+                    immersiveMode = !immersiveMode;
+                    AndroidPlayer.setImmersiveMode(immersiveMode);
+                    updateDisplayModeUi();
+                    setTimeout(updatePlayerLayout, 120);
+                    setStatus(immersiveMode
+                      ? (uiEnglish ? 'Immersive fullscreen' : '沉浸全螢幕')
+                      : (uiEnglish ? 'System navigation bar visible' : '顯示系統導覽列'));
+                    showChrome();
+                  };
                   loopAButton.onclick = function() {
                     toggleLoopPoint('A');
                     showChrome();
@@ -2772,6 +2917,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   });
                   document.addEventListener('click', function(event) {
                     if (!speedGroup.contains(event.target)) closeSpeedMenu();
+                    if (!document.getElementById('display-settings-wrap').contains(event.target)) {
+                      displayMenu.classList.remove('open');
+                    }
                   });
                   progress.oninput = function() {
                     if (video.duration && isFinite(video.duration)) {
@@ -2795,6 +2943,8 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                   updatePlay();
                   updateAbLoopButtons();
                   updateOrientation(initialOrientationMode);
+                  updateDisplayModeUi();
+                  requestAnimationFrame(updatePlayerLayout);
                   loadQualityOptions();
                   video.load();
                   var p = video.play();

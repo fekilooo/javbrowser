@@ -40,6 +40,7 @@ class MainActivity : LocalizedActivity() {
     private lateinit var btnSettings: Button
     private lateinit var btnDownloads: Button
     private lateinit var btnCrossSiteSearch: Button
+    private lateinit var btnCopyPageUrl: Button
     private lateinit var progressBar: android.widget.ProgressBar
     private lateinit var favoritesManager: FavoritesManager
     private lateinit var privacySettings: PrivacySettings
@@ -51,7 +52,6 @@ class MainActivity : LocalizedActivity() {
     private var isOnJavDbVideoPage = false
     private var isOnJavTrailersVideoPage = false
     private var crossSiteCode: String? = null
-    private var crossSiteSearchDialog: BottomSheetDialog? = null
     @Volatile private var currentPageUrl: String = ""   // safe to read from background thread
     private var lastStripchatModelUrl: String? = null
     private var videoFoundToastShown = false
@@ -238,6 +238,12 @@ class MainActivity : LocalizedActivity() {
         btnSettings = findViewById(R.id.btn_settings)
         btnDownloads = findViewById(R.id.btn_downloads)
         btnCrossSiteSearch = findViewById(R.id.btn_cross_site_search)
+        btnCopyPageUrl = findViewById(R.id.btn_copy_page_url)
+        btnCopyPageUrl.setOnClickListener { copyCurrentPageUrl() }
+        btnCopyPageUrl.setOnLongClickListener {
+            Toast.makeText(this, LanguageManager.text(this, "複製目前網頁網址", "Copy current page URL"), Toast.LENGTH_SHORT).show()
+            true
+        }
         progressBar = findViewById(R.id.progressBar)
 
         // 在 onCreate 就 register，確保 FavoritesActivity 發廣播時（MainActivity 已 pause）也能收到
@@ -1102,6 +1108,18 @@ class MainActivity : LocalizedActivity() {
             }
             
             @android.webkit.JavascriptInterface
+            fun openUnifiedSearch(query: String) {
+                runOnUiThread {
+                    // Only the app-owned landing page may invoke this entry point.
+                    if (webView.url?.startsWith("https://javbrowser.app/") == true || isOnLandingPage()) {
+                        startActivity(Intent(this@MainActivity, UnifiedSearchActivity::class.java).apply {
+                            putExtra(UnifiedSearchActivity.EXTRA_QUERY, query.trim().take(500))
+                        })
+                    }
+                }
+            }
+
+            @android.webkit.JavascriptInterface
             fun navigateToUrl(url: String) {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, "Connecting...", Toast.LENGTH_SHORT).show()
@@ -1653,6 +1671,7 @@ class MainActivity : LocalizedActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 android.util.Log.d("NAV_DEBUG", "onPageFinished url=$url")
+                updateCopyPageUrlVisibility()
                 
                 // Hide progress bar and cancel timeout
                 progressBar.visibility = View.GONE
@@ -2196,6 +2215,7 @@ class MainActivity : LocalizedActivity() {
                 fullscreenContainer.addView(view)
                 fullscreenContainer.visibility = android.view.View.VISIBLE
                 btnCrossSiteSearch.visibility = View.GONE
+                btnCopyPageUrl.visibility = View.GONE
                 val isStripchatFullscreen = webView.url
                     ?.contains("stripchat.com", ignoreCase = true) == true
                 if (isStripchatFullscreen) {
@@ -5449,6 +5469,10 @@ class MainActivity : LocalizedActivity() {
             webView.webChromeClient?.onHideCustomView()
             return
         }
+        if (intent.getBooleanExtra(BrowserNavigator.EXTRA_RETURN_TO_SEARCH, false)) {
+            finish()
+            return
+        }
         if (webView.canGoBack()) {
             // 返回上一頁前，把當前的 Y 軸位置直接寫進該網頁的 sessionStorage
             webView.evaluateJavascript(
@@ -5716,16 +5740,46 @@ class MainActivity : LocalizedActivity() {
                     .search-results {
                         width: 100%;
                         display: none;
-                        grid-template-columns: repeat(2, minmax(0, 1fr));
-                        gap: 7px;
-                        margin-top: 8px;
-                        padding: 9px;
+                        box-sizing: border-box;
+                        margin-top: 12px;
+                        padding: 12px;
                         border-radius: 12px;
                         background: #1b1b1b;
+                        border: 1px solid #38313f;
                     }
                     .search-results.show {
-                        display: grid;
+                        display: block;
                     }
+                    .search-results > summary {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        min-height: 40px;
+                        width: 100%;
+                        cursor: pointer;
+                        list-style: none;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        color: #ddd;
+                    }
+                    .search-results > summary::-webkit-details-marker { display: none; }
+                    .search-results > summary::after { content: '+'; color: #BB86FC; font-size: 22px; flex-shrink: 0; }
+                    .search-results[open] > summary::after { content: '−'; }
+                    .search-query-hint {
+                        margin: 4px 0 12px;
+                        font-size: 12px;
+                        color: #a9a2b1;
+                        overflow-wrap: anywhere;
+                        line-height: 1.5;
+                    }
+                    .search-site-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 10px;
+                    }
+                    .search-results:not([open]) > .search-site-grid,
+                    .search-results:not([open]) > .search-query-hint { display: none; }
                     a {
                         text-decoration: none;
                     }
@@ -5748,6 +5802,15 @@ class MainActivity : LocalizedActivity() {
                     .site-grid a:active {
                         background-color: #CF6FFF;
                     }
+                    .search-site-grid a {
+                        box-sizing: border-box;
+                        min-width: 0;
+                        min-height: 48px;
+                        padding: 10px 8px;
+                        color: #24152B;
+                        overflow-wrap: anywhere;
+                    }
+                    .search-site-grid a:focus-visible { outline: 2px solid white; outline-offset: 2px; }
                     .quick-grid {
                         display: grid;
                         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5835,7 +5898,7 @@ class MainActivity : LocalizedActivity() {
                     .ad-wrap.collapsed .ad-action { display: none; }
                     @media (min-width: 620px) {
                         .site-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-                        .search-results { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+                        .search-site-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
                     }
                 </style>
             </head>
@@ -5848,20 +5911,25 @@ class MainActivity : LocalizedActivity() {
                 
                 <div class="search-container">
                     <input type="text" id="searchInput" class="search-box" placeholder="$searchPlaceholder" />
+                    <button id="unifiedSearchButton" onclick="Android.openUnifiedSearch(document.getElementById('searchInput').value)" style="display:block;width:100%;margin-top:10px;padding:14px;background:#BB86FC;color:#24152B;border:0;border-radius:8px;font-size:16px;font-weight:bold;">${if (english) "Search all sites · Unified results" else "統一跨站搜尋 · 彙整結果"}</button>
                     <div id="jav-hint" style="display:none; margin-top:10px;">
                         <button id="btn-save-jav" onclick="handleSaveJav()" style="display:block; width:100%; padding:15px 30px; background:#BB86FC; color:black; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:bold; text-align:center; box-sizing:border-box; transition:background 0.3s ease;">📚 <span id="jav-detected-label">$addBookmark</span></button>
                     </div>
-                    <div id="searchResults" class="search-results">
-                        <a href="#" id="searchMissAV">$searchMissAvLabel</a>
-                        <a href="#" id="searchJable">$searchJableLabel</a>
-                        <a href="#" id="searchAvJoy">$searchAvJoyLabel</a>
-                        <a href="#" id="searchPigAV">$searchPigAvLabel</a>
-                        <a href="#" id="searchAVToday">$searchAvTodayLabel</a>
-                        <a href="#" id="searchJavHD">$searchJavHdLabel</a>
-                        <a href="#" id="search7MMTV">$search7MmTvLabel</a>
-                        <a href="#" id="searchAvple">$searchAvpleLabel</a>
-                        <a href="#" id="searchWhos">$searchWhosLabel</a>
-                    </div>
+                    <details id="searchResults" class="search-results">
+                        <summary>${if (english) "Fallback: search on an original site" else "備用：到個別原站搜尋"}</summary>
+                        <p id="searchQueryHint" class="search-query-hint"></p>
+                        <div class="search-site-grid">
+                            <a href="#" id="searchMissAV">MissAV</a>
+                            <a href="#" id="searchJable">Jable.TV</a>
+                            <a href="#" id="searchAvJoy">AvJoy</a>
+                            <a href="#" id="searchPigAV">PigAV</a>
+                            <a href="#" id="searchAVToday">AVToday</a>
+                            <a href="#" id="searchJavHD">JavHDPorn</a>
+                            <a href="#" id="search7MMTV">7MMTV</a>
+                            <a href="#" id="searchAvple">Avple</a>
+                            <a href="#" id="searchWhos">Whos.tv</a>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="quick-grid">
@@ -5979,15 +6047,11 @@ class MainActivity : LocalizedActivity() {
                         updateJavHint(_javCodes);
                         if (keyword.length > 0) {
                             searchResults.classList.add('show');
-                            searchMissAV.textContent = $searchMissAvPrefix + keyword;
-                            searchJable.textContent = $searchJablePrefix + keyword;
-                            searchAvJoy.textContent = $searchAvJoyPrefix + keyword;
-                            searchPigAV.textContent = $searchPigAvPrefix + keyword;
-                            searchAVToday.textContent = $searchAvTodayPrefix + keyword;
-                            searchJavHD.textContent = $searchJavHdPrefix + keyword;
-                            search7MMTV.textContent = $search7MmTvPrefix + keyword;
-                            searchAvple.textContent = $searchAvplePrefix + keyword;
-                            searchWhos.textContent = $searchWhosPrefix + keyword;
+                            document.getElementById('searchQueryHint').textContent =
+                                ${org.json.JSONObject.quote(if (english) "Search: " else "搜尋內容：")} + keyword;
+                            document.querySelectorAll('.search-site-grid a').forEach(function(link) {
+                                link.setAttribute('aria-label', link.textContent + ': ' + keyword);
+                            });
 
                             // Update URLs
                             searchMissAV.href = 'https://${domainConfig.getMissAvDomain()}/search/' + encodeURIComponent(keyword);
@@ -6006,8 +6070,8 @@ class MainActivity : LocalizedActivity() {
 
                     searchInput.addEventListener('keypress', function(e) {
                         if (e.key === 'Enter' && this.value.trim().length > 0) {
-                            // Default to MissAV on Enter
-                            Android.navigateToUrl(searchMissAV.href);
+                            e.preventDefault();
+                            Android.openUnifiedSearch(this.value.trim());
                         }
                     });
 
@@ -6060,8 +6124,9 @@ class MainActivity : LocalizedActivity() {
     }
 
     private fun updateCrossSiteSearchButtonVisibility() {
+        updateCopyPageUrlVisibility()
         btnCrossSiteSearch.visibility = if (
-            !crossSiteCode.isNullOrBlank() && !isStripchatOverlayActive
+            isCrossSiteSupportedPage(currentPageUrl) && !isStripchatOverlayActive
         ) {
             View.VISIBLE
         } else {
@@ -6085,13 +6150,31 @@ class MainActivity : LocalizedActivity() {
             host == "whos.tv" || host.endsWith(".whos.tv")
     }
 
+    private fun updateCopyPageUrlVisibility() {
+        if (!::btnCopyPageUrl.isInitialized || !::webView.isInitialized) return
+        btnCopyPageUrl.visibility = if (customView == null && !isStripchatOverlayActive &&
+            PageUrlClipboard.copyableUrl(webView.url) != null) View.VISIBLE else View.GONE
+    }
+
+    private fun copyCurrentPageUrl() {
+        // Query WebView on click so redirects and client-side history are reflected immediately.
+        val url = PageUrlClipboard.copyableUrl(webView.url)
+        if (url == null) {
+            Toast.makeText(this, LanguageManager.text(this, "目前沒有可複製的網頁網址", "No page URL to copy"), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("URL", url))
+        Toast.makeText(this, LanguageManager.text(this, "已複製網址", "URL copied"), Toast.LENGTH_SHORT).show()
+    }
+
     private fun updateCrossSiteCode(rawCode: String?) {
         val normalized = rawCode.orEmpty().trim().uppercase(Locale.ROOT)
         val valid = normalized.matches(Regex("[A-Z0-9]{2,10}(?:-[A-Z0-9]{1,10})+")) &&
             normalized.length <= 40 && isCrossSiteSupportedPage(currentPageUrl)
         if (!valid) {
             crossSiteCode = null
-            crossSiteSearchDialog?.dismiss()
+            btnCrossSiteSearch.contentDescription = "統一跨站搜尋"
             updateCrossSiteSearchButtonVisibility()
             return
         }
@@ -6103,182 +6186,20 @@ class MainActivity : LocalizedActivity() {
 
     private fun clearCrossSiteCode() {
         crossSiteCode = null
-        crossSiteSearchDialog?.dismiss()
         updateCrossSiteSearchButtonVisibility()
     }
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
-    private fun crossSiteSearchTargets(code: String): List<Pair<String, String>> {
-        val pathCode = Uri.encode(code)
-        val queryCode = URLEncoder.encode(code, "UTF-8")
-        return listOf(
-            "MissAV" to "${domainConfig.getMissAvBaseUrl().trimEnd('/')}/search/$pathCode",
-            "Jable.TV" to "https://jable.tv/search/$pathCode/",
-            "AvJoy" to "https://${domainConfig.getAvJoyDomain()}/search/videos/$pathCode",
-            "PigAV" to "https://pigav.ws/search?search=$queryCode&searchTarget=local",
-            "AVToday" to "https://avtoday.io/search?s=$queryCode",
-            "JavHDPorn" to "https://www.javhdporn.net/?s=$queryCode",
-            "7MMTV" to domainConfig.get7MmTvSearchUrl(code),
-            "Avple" to domainConfig.getAvpleSearchUrl(code),
-            "Whos.tv" to domainConfig.getWhosSearchUrl(code),
-        )
-    }
 
+    /** 將舊的九個按鈕入口改為統一抓取結果頁。 */
     private fun showCrossSiteSearchSheet() {
-        val code = crossSiteCode ?: return
-        crossSiteSearchDialog?.dismiss()
-
-        val dialog = BottomSheetDialog(this)
-        crossSiteSearchDialog = dialog
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(10), dp(16), dp(16))
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(28, 28, 32))
-                val radius = dp(22).toFloat()
-                setCornerRadii(floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f))
-            }
-        }
-
-        val handle = View(this).apply {
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(125, 125, 132))
-                cornerRadius = dp(3).toFloat()
-            }
-        }
-        root.addView(handle, LinearLayout.LayoutParams(dp(42), dp(4)).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            bottomMargin = dp(10)
+        val code = crossSiteCode.orEmpty()
+        startActivity(Intent(this, UnifiedSearchActivity::class.java).apply {
+            putExtra(UnifiedSearchActivity.EXTRA_QUERY, code)
+            putExtra(UnifiedSearchActivity.EXTRA_FORCE_CODE, code.isNotBlank())
         })
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val title = TextView(this).apply {
-            text = "跨站搜尋\n$code"
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            typeface = Typeface.DEFAULT_BOLD
-            maxLines = 2
-        }
-        header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-
-        val copyButton = MaterialButton(this).apply {
-            text = "複製番號"
-            setTextSize(12f)
-            setAllCaps(false)
-            minHeight = 0
-            minimumHeight = 0
-            minWidth = 0
-            minimumWidth = 0
-            insetTop = 0
-            insetBottom = 0
-            setPadding(dp(8), 0, dp(8), 0)
-            setTextColor(Color.WHITE)
-            backgroundTintList = ColorStateList.valueOf(Color.rgb(92, 56, 130))
-            cornerRadius = dp(8)
-            setOnClickListener {
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("番號", code))
-                Toast.makeText(this@MainActivity, "已複製 $code", Toast.LENGTH_SHORT).show()
-            }
-        }
-        header.addView(copyButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(38)).apply {
-            marginEnd = dp(6)
-        })
-
-        val closeButton = MaterialButton(this).apply {
-            text = "×"
-            setTextSize(22f)
-            setAllCaps(false)
-            minHeight = 0
-            minimumHeight = 0
-            minWidth = 0
-            minimumWidth = 0
-            insetTop = 0
-            insetBottom = 0
-            setPadding(0, 0, 0, 0)
-            setTextColor(Color.WHITE)
-            backgroundTintList = ColorStateList.valueOf(Color.rgb(92, 56, 130))
-            cornerRadius = dp(8)
-            setOnClickListener { dialog.dismiss() }
-        }
-        header.addView(closeButton, LinearLayout.LayoutParams(dp(42), dp(38)))
-        root.addView(header, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(12)
-        })
-
-        val grid = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        val targets = crossSiteSearchTargets(code)
-        targets.chunked(2).forEach { rowTargets ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-            }
-            rowTargets.forEach { (label, url) ->
-                val targetButton = MaterialButton(this).apply {
-                    text = label
-                    setTextSize(14f)
-                    setAllCaps(false)
-                    minHeight = 0
-                    minimumHeight = 0
-                    insetTop = 0
-                    insetBottom = 0
-                    setPadding(dp(4), 0, dp(4), 0)
-                    setTextColor(Color.rgb(25, 18, 32))
-                    backgroundTintList = ColorStateList.valueOf(Color.rgb(187, 134, 252))
-                    cornerRadius = dp(10)
-                    maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    setOnClickListener {
-                        dialog.dismiss()
-                        progressBar.visibility = View.VISIBLE
-                        progressBar.progress = 10
-                        startLoadTimeout()
-                        webView.loadUrl(url)
-                    }
-                }
-                row.addView(targetButton, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
-                    marginEnd = dp(4)
-                })
-            }
-            repeat(2 - rowTargets.size) {
-                row.addView(Space(this), LinearLayout.LayoutParams(0, dp(48), 1f).apply {
-                    marginEnd = dp(4)
-                })
-            }
-            grid.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
-                bottomMargin = dp(6)
-            })
-        }
-        root.addView(grid)
-
-        val hint = TextView(this).apply {
-            text = "點擊網站名稱即可用 $code 搜尋"
-            setTextColor(Color.rgb(175, 175, 182))
-            textSize = 12f
-            gravity = Gravity.CENTER
-        }
-        root.addView(hint, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(2)
-        })
-
-        dialog.setContentView(root)
-        dialog.setOnShowListener {
-            val sheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            if (sheet != null) {
-                sheet.setBackgroundColor(Color.TRANSPARENT)
-                BottomSheetBehavior.from(sheet).state = BottomSheetBehavior.STATE_EXPANDED
-            }
-        }
-        dialog.setOnDismissListener {
-            if (crossSiteSearchDialog === dialog) crossSiteSearchDialog = null
-        }
-        dialog.show()
     }
     
     private fun setupSettingsButton() {

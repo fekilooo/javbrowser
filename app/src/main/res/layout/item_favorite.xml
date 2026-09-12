@@ -69,6 +69,24 @@
                     android:contentDescription="Video Thumbnail" />
 
                 <Button
+                    android:id="@+id/btn_repair_cover"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="start|top"
+                    android:layout_margin="5dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:padding="0dp"
+                    android:text="↻"
+                    android:textSize="18sp"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#B0000000"
+                    android:contentDescription="修復封面"
+                    android:visibility="gone" />
+
+                <Button
                     android:id="@+id/btn_local_play"
                     android:layout_width="wrap_content"
                     android:layout_height="28dp"

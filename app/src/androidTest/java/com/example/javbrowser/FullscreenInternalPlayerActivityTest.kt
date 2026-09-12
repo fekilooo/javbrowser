@@ -3,6 +3,7 @@ package com.example.javbrowser
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.SystemClock
+import android.view.View
 import android.webkit.WebView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -16,6 +17,61 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class FullscreenInternalPlayerActivityTest {
+
+    @Test
+    fun systemNavigationAndSubtitleFriendlyLandscapeAreDefaultAndDisplayModesPersist() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val preferences = context.getSharedPreferences("internal_player_ui", android.content.Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        val intent = Intent(context, FullscreenInternalPlayerActivity::class.java).apply {
+            putExtra(FullscreenInternalPlayerActivity.EXTRA_VIDEO_URL, "https://media.invalid/video.mp4")
+            putExtra(FullscreenInternalPlayerActivity.EXTRA_REFERER, "https://missav.test/video")
+        }
+
+        try {
+            ActivityScenario.launch<FullscreenInternalPlayerActivity>(intent).use { scenario ->
+                scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+                SystemClock.sleep(700)
+                scenario.onActivity { activity ->
+                    assertTrue(activity.window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0)
+                }
+
+                val friendlyLayout = waitForEvaluation(scenario) {
+                    "(function(){var v=document.getElementById('video'),c=document.getElementById('controls');" +
+                        "return String(!!v&&!!c&&innerWidth>innerHeight&&" +
+                        "v.getBoundingClientRect().bottom<=c.getBoundingClientRect().top+2)+" +
+                        "'|'+innerWidth+'x'+innerHeight+'|'+(v?v.getBoundingClientRect().bottom:'missing')+" +
+                        "'|'+(c?c.getBoundingClientRect().top:'missing');})()"
+                }
+                assertTrue("friendlyLayout=$friendlyLayout", friendlyLayout.contains("true|"))
+
+                scenario.onActivity { activity ->
+                    findWebView(activity.window.decorView.rootView as android.view.ViewGroup)
+                        .evaluateJavascript("document.getElementById('picture-mode').click()", null)
+                }
+                SystemClock.sleep(250)
+                val maximumLayout = waitForEvaluation(scenario) {
+                    "(function(){var v=document.getElementById('video');return String(!!v&&" +
+                        "v.getBoundingClientRect().height>=innerHeight-2)+'|'+" +
+                        "(v?v.getBoundingClientRect().height:'missing')+'|'+innerHeight;})()"
+                }
+                assertTrue("maximumLayout=$maximumLayout", maximumLayout.contains("true|"))
+                assertTrue(preferences.getBoolean("max_picture_mode", false))
+
+                scenario.onActivity { activity ->
+                    findWebView(activity.window.decorView.rootView as android.view.ViewGroup)
+                        .evaluateJavascript("document.getElementById('immersive-mode').click()", null)
+                }
+                SystemClock.sleep(250)
+                scenario.onActivity { activity ->
+                    assertTrue(activity.window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION != 0)
+                }
+                assertTrue(preferences.getBoolean("immersive_mode", false))
+            }
+        } finally {
+            preferences.edit().clear().commit()
+        }
+    }
 
     @Test
     fun missAvQualityOptionsAndCurrentLandscapeLockWork() {
@@ -142,5 +198,35 @@ class FullscreenInternalPlayerActivityTest {
             }
         }
         throw AssertionError("WebView not found")
+    }
+
+    private fun evaluate(
+        scenario: ActivityScenario<FullscreenInternalPlayerActivity>,
+        script: String
+    ): String {
+        var result = ""
+        val latch = CountDownLatch(1)
+        scenario.onActivity { activity ->
+            findWebView(activity.window.decorView.rootView as android.view.ViewGroup)
+                .evaluateJavascript(script) {
+                    result = it.orEmpty()
+                    latch.countDown()
+                }
+        }
+        latch.await(2, TimeUnit.SECONDS)
+        return result
+    }
+
+    private fun waitForEvaluation(
+        scenario: ActivityScenario<FullscreenInternalPlayerActivity>,
+        script: () -> String
+    ): String {
+        var result = ""
+        repeat(20) {
+            result = evaluate(scenario, script())
+            if (result.contains("true|")) return result
+            SystemClock.sleep(250)
+        }
+        return result
     }
 }

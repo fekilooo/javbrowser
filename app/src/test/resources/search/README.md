@@ -1,0 +1,1 @@
+These are synthetic structural contracts using neutral TEST identifiers, not captured live-site fixtures. They validate parser mechanics only and do not establish current site compatibility. No cookies, credentials, real titles, or media are included. Live-site result and empty-state verification remains outstanding.
