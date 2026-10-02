@@ -1,15 +1,21 @@
 package com.example.javbrowser
 
 import android.Manifest
+import android.app.Activity
+import android.app.RecoverableSecurityException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.IntentSender
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
+import android.provider.DocumentsContract
+import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +24,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -38,6 +45,7 @@ class DownloadsActivity : LocalizedActivity() {
     private lateinit var emptyView: TextView
     private val scanExecutor = Executors.newSingleThreadExecutor()
     private val isScanning = AtomicBoolean(false)
+    private var pendingMediaDelete: Pair<VideoDownloadRecord, Uri>? = null
 
     private val changeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -78,6 +86,26 @@ class DownloadsActivity : LocalizedActivity() {
                 ),
                 Toast.LENGTH_LONG
             ).show()
+        }
+    }
+
+    private val requestMediaDelete = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val pending = pendingMediaDelete ?: return@registerForActivityResult
+        pendingMediaDelete = null
+        if (result.resultCode == Activity.RESULT_OK) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                finishDeleteRecord(pending.first)
+            } else {
+                // Android 10 grants permission; the app must retry the actual deletion.
+                deleteContentUri(pending.first, pending.second)
+            }
+        } else {
+            showDeleteFailure(
+                "未取得系統刪除授權，影片和紀錄都保留。",
+                "System deletion was not approved; the video and its record were kept."
+            )
         }
     }
 
@@ -404,17 +432,97 @@ class DownloadsActivity : LocalizedActivity() {
     }
 
     private fun deleteRecord(record: VideoDownloadRecord, deleteFile: Boolean) {
-        if (deleteFile) {
-            record.fileUri?.let { uriString ->
-                runCatching {
-                    val uri = Uri.parse(uriString)
-                    if (uri.scheme == "content") contentResolver.delete(uri, null, null)
-                    else if (uri.scheme == "file") java.io.File(uri.path.orEmpty()).delete()
-                    Unit
+        if (!deleteFile) {
+            DownloadRepository.remove(this, record.id)
+            refresh()
+            return
+        }
+
+        val uri = record.fileUri?.let(Uri::parse)
+        if (uri == null) {
+            showDeleteFailure("找不到影片檔案位置，紀錄已保留。", "The video location is missing; its record was kept.")
+            return
+        }
+
+        when (uri.scheme) {
+            "file" -> {
+                val file = uri.path?.let { java.io.File(it) }
+                if (file != null && (!file.exists() || file.delete())) {
+                    finishDeleteRecord(record)
+                } else {
+                    showDeleteFailure("無法刪除影片檔案，紀錄已保留。", "Unable to delete the video; its record was kept.")
                 }
             }
+            "content" -> deleteContentUri(record, uri)
+            else -> showDeleteFailure("不支援此影片位置，紀錄已保留。", "This video location cannot be deleted; its record was kept.")
         }
+    }
+
+    private fun deleteContentUri(record: VideoDownloadRecord, uri: Uri) {
+        if (DocumentsContract.isDocumentUri(this, uri)) {
+            val document = DocumentFile.fromSingleUri(this, uri)
+            val exists = runCatching { document?.exists() }.getOrNull()
+            if (exists == false || runCatching { document?.delete() == true }.getOrDefault(false)) {
+                finishDeleteRecord(record)
+                return
+            }
+        }
+
+        try {
+            if (contentResolver.delete(uri, null, null) > 0 || contentUriExists(uri) == false) {
+                finishDeleteRecord(record)
+                return
+            }
+            if (isMediaStoreUri(uri) && launchMediaDeleteConsent(record, uri)) return
+            showDeleteFailure("無法刪除影片檔案，紀錄已保留。", "Unable to delete the video; its record was kept.")
+        } catch (error: SecurityException) {
+            val recoverable = error as? RecoverableSecurityException
+            if (isMediaStoreUri(uri) && launchMediaDeleteConsent(record, uri, recoverable)) return
+            showDeleteFailure("沒有刪除此影片的權限，紀錄已保留。", "Permission to delete this video was denied; its record was kept.")
+        } catch (_: Exception) {
+            showDeleteFailure("刪除影片失敗，紀錄已保留。", "Video deletion failed; its record was kept.")
+        }
+    }
+
+    private fun launchMediaDeleteConsent(
+        record: VideoDownloadRecord,
+        uri: Uri,
+        recoverable: RecoverableSecurityException? = null
+    ): Boolean {
+        val intentSender: IntentSender = recoverable?.userAction?.actionIntent?.intentSender
+            ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                runCatching {
+                    MediaStore.createDeleteRequest(contentResolver, listOf(uri)).intentSender
+                }.getOrNull()
+            } else {
+                null
+            }
+            ?: return false
+
+        pendingMediaDelete = record to uri
+        requestMediaDelete.launch(IntentSenderRequest.Builder(intentSender).build())
+        return true
+    }
+
+    private fun isMediaStoreUri(uri: Uri): Boolean = uri.authority == "media"
+
+    private fun contentUriExists(uri: Uri): Boolean? = runCatching {
+        val column = if (isMediaStoreUri(uri)) MediaStore.MediaColumns._ID else OpenableColumns.DISPLAY_NAME
+        contentResolver.query(uri, arrayOf(column), null, null, null)?.use { it.moveToFirst() }
+    }.getOrNull()
+
+    private fun finishDeleteRecord(record: VideoDownloadRecord) {
         DownloadRepository.remove(this, record.id)
+        refresh()
+        Toast.makeText(
+            this,
+            LanguageManager.text(this, "影片與紀錄已刪除", "Video and record deleted"),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showDeleteFailure(chinese: String, english: String) {
+        Toast.makeText(this, LanguageManager.text(this, chinese, english), Toast.LENGTH_LONG).show()
     }
 
     private data class StorageHeaderUi(

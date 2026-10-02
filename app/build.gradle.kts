@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.javbrowser"
         minSdk = 24
         targetSdk = 34
-        versionCode = 117
-        versionName = "1.1.7"
+        versionCode = 120
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

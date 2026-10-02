@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 import java.util.UUID
 
 data class VideoDownloadRecord(
@@ -101,12 +102,17 @@ object DownloadRepository {
     @Synchronized
     fun list(context: Context): List<VideoDownloadRecord> {
         val raw = prefs(context).getString(KEY_RECORDS, "[]") ?: "[]"
-        return runCatching {
+        val records = runCatching {
             val array = JSONArray(raw)
             buildList {
                 for (index in 0 until array.length()) add(fromJson(array.getJSONObject(index)))
             }
-        }.getOrDefault(emptyList()).sortedByDescending { it.createdAt }
+        }.getOrDefault(emptyList())
+        val deduplicated = deduplicateRecords(context, records)
+        if (deduplicated.size != records.size) {
+            saveRecords(context, deduplicated.sortedBy { it.createdAt }.takeLast(300))
+        }
+        return deduplicated.sortedByDescending { it.createdAt }
     }
 
     fun storageTreeUri(context: Context): Uri? = prefs(context)
@@ -138,7 +144,7 @@ object DownloadRepository {
         markMissing: Boolean = false,
         pruneUnmanaged: Boolean = false
     ) {
-        val records = list(context).toMutableList()
+        val records = deduplicateRecords(context, list(context)).toMutableList()
         if (pruneUnmanaged) records.removeAll { !isManagedRecord(it) }
         val availableUris = files.map { it.uri.toString() }.toSet()
         files.forEach { file ->
@@ -206,9 +212,92 @@ object DownloadRepository {
                 }
             }
         }
-        saveRecords(context, records.sortedBy { it.createdAt }.takeLast(300))
+        saveRecords(context, deduplicateRecords(context, records).sortedBy { it.createdAt }.takeLast(300))
         notifyChanged(context)
     }
+
+    private fun deduplicateRecords(
+        context: Context,
+        records: List<VideoDownloadRecord>
+    ): List<VideoDownloadRecord> {
+        val unique = LinkedHashMap<String, VideoDownloadRecord>()
+        records.forEach { record ->
+            val key = physicalFileKey(context, record) ?: "record:${record.id}"
+            val existing = unique[key]
+            unique[key] = if (existing == null) record else mergeDuplicateRecords(existing, record)
+        }
+        return unique.values.toList()
+    }
+
+    private fun physicalFileKey(context: Context, record: VideoDownloadRecord): String? {
+        val name = record.fileName?.takeIf { it.isNotBlank() }
+            ?.lowercase(Locale.ROOT) ?: return null
+        val uriText = record.fileUri?.takeIf { it.isNotBlank() } ?: return null
+        val uri = Uri.parse(uriText)
+        val directory = externalStoragePath(uri)?.substringBeforeLast('/', "")
+            ?.takeIf { it.isNotBlank() }
+            ?: storageLocationPath(context, record.storageLocation)
+            ?: return "uri:$uriText"
+        val size = record.fileSizeBytes.takeIf { it > 0L }?.toString() ?: "unknown"
+        return "file:${directory.lowercase(Locale.ROOT)}|$name|$size"
+    }
+
+    private fun storageLocationPath(context: Context, location: String): String? {
+        if (location == storageDisplayName(context)) {
+            storageTreeUri(context)?.let(::externalStoragePath)?.let { return it }
+        }
+        val relativePath = when {
+            location.startsWith("媒體庫：") -> location.substringAfter("媒體庫：")
+            location.startsWith("媒體庫:") -> location.substringAfter("媒體庫:")
+            location.startsWith("系統下載/") -> "Download/${location.substringAfter("系統下載/")}"
+            location.startsWith("自訂：") || location.startsWith("自訂:") -> return null
+            else -> return null
+        }.trim('/')
+        return "primary:${relativePath.replace('\\', '/')}"
+    }
+
+    private fun externalStoragePath(uri: Uri): String? {
+        val pathSegments = uri.pathSegments
+        val documentIndex = pathSegments.indexOfLast { it == "document" || it == "tree" }
+        if (documentIndex < 0) return null
+        val documentId = pathSegments.getOrNull(documentIndex + 1) ?: return null
+        if (!documentId.contains(':')) return null
+        return documentId.replace('\\', '/')
+    }
+
+    private fun mergeDuplicateRecords(
+        first: VideoDownloadRecord,
+        second: VideoDownloadRecord
+    ): VideoDownloadRecord {
+        val keep = if (recordPreference(second) > recordPreference(first)) second else first
+        val other = if (keep === first) second else first
+        return keep.copy(
+            title = keep.title.takeIf { it.isNotBlank() } ?: other.title,
+            sourceUrl = keep.sourceUrl.ifBlank { other.sourceUrl },
+            status = if (keep.status == STATUS_COMPLETED || other.status == STATUS_COMPLETED) {
+                STATUS_COMPLETED
+            } else {
+                keep.status
+            },
+            progress = if (keep.status == STATUS_COMPLETED || other.status == STATUS_COMPLETED) 100 else keep.progress,
+            fileName = keep.fileName ?: other.fileName,
+            fileUri = keep.fileUri ?: other.fileUri,
+            fileSizeBytes = maxOf(keep.fileSizeBytes, other.fileSizeBytes),
+            javCode = keep.javCode ?: other.javCode,
+            mimeType = keep.mimeType ?: other.mimeType,
+            storageLocation = keep.storageLocation.ifBlank { other.storageLocation },
+            createdAt = minOf(keep.createdAt, other.createdAt),
+            completedAt = listOfNotNull(keep.completedAt, other.completedAt).maxOrNull(),
+            referer = keep.referer.ifBlank { other.referer },
+            cookieSourceUrl = keep.cookieSourceUrl.ifBlank { other.cookieSourceUrl }
+        )
+    }
+
+    private fun recordPreference(record: VideoDownloadRecord): Int =
+        (if (record.sourceUrl.isNotBlank()) 8 else 0) +
+            (if (record.fileUri?.contains("com.android.externalstorage.documents") == true) 4 else 0) +
+            (if (record.status == STATUS_COMPLETED) 2 else 0) +
+            (if (record.id.startsWith("local-")) 0 else 1)
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -51,7 +51,7 @@ class SearchSourceActivity : LocalizedActivity() {
                 setPadding(0, 0, 0, 0); setOnClickListener { click() }
             }, LinearLayout.LayoutParams(0, dp(48), 1f))
         }
-        action("返回結果", "Back") { finish() }
+        action("× 關閉", "× Close") { finish() }
         action("複製網址", "Copy URL") { copyUrl() }
         action("重新載入", "Reload") { browser.reload() }
         action("返回並重試", "Retry site") {
@@ -118,6 +118,14 @@ class SearchSourceActivity : LocalizedActivity() {
     }
     private fun tr(zh: String, en: String) = LanguageManager.text(this, zh, en)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (::browser.isInitialized && browser.canGoBack()) {
+            browser.goBack()
+        } else {
+            finish()
+        }
+    }
     override fun onResume() { super.onResume(); if (::browser.isInitialized) browser.onResume() }
     override fun onStop() { if (::browser.isInitialized) { browser.stopLoading(); browser.onPause() }; super.onStop() }
     override fun onSaveInstanceState(outState: Bundle) {

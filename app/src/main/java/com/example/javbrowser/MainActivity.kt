@@ -94,7 +94,7 @@ class MainActivity : LocalizedActivity() {
     private var stripchatWatchStartRequestedAt = 0L
     // 只有使用者主動按 Home 鍵（真正離開 app）時才設為 true
     private var userLeftApp = false
-    // 從銷售排行開啟搜尋頁時，返回鍵應回到排行頁，而不是先走 WebView 歷史。
+    // 從銷售排行開啟網頁時，沒有 WebView 上一頁後返回排行頁。
     private var returnToSalesRanking = false
 
     companion object {
@@ -298,6 +298,7 @@ class MainActivity : LocalizedActivity() {
         android.util.Log.d("NAV_DEBUG", "onNewIntent intentUrl=${intent?.getStringExtra("url")} action=${intent?.action}")
         setIntent(intent)
         returnToSalesRanking = intent?.getBooleanExtra(EXTRA_RETURN_TO_SALES, false) == true
+        if (::btnHome.isInitialized) updateHomeButtonForNavigationContext()
         handleIncomingIntent(intent)
     }
 
@@ -5457,20 +5458,9 @@ class MainActivity : LocalizedActivity() {
     }
     
     override fun onBackPressed() {
-        if (returnToSalesRanking) {
-            // SalesRankingActivity 留在目前 task 的下一層；直接結束這個搜尋頁，
-            // 讓使用者回到原本的排行與 RecyclerView 滾動位置。
-            returnToSalesRanking = false
-            finish()
-            return
-        }
         // 全螢幕模式中，返回鍵先退出全螢幕
         if (customView != null) {
             webView.webChromeClient?.onHideCustomView()
-            return
-        }
-        if (intent.getBooleanExtra(BrowserNavigator.EXTRA_RETURN_TO_SEARCH, false)) {
-            finish()
             return
         }
         if (webView.canGoBack()) {
@@ -5489,6 +5479,13 @@ class MainActivity : LocalizedActivity() {
                 // 寫完後立刻執行返回
                 webView.goBack()
             }
+        } else if (intent.getBooleanExtra(BrowserNavigator.EXTRA_RETURN_TO_SEARCH, false)) {
+            // 搜尋結果開啟的瀏覽頁已沒有上一頁，返回搜尋結果。
+            finish()
+        } else if (returnToSalesRanking) {
+            // 排行頁仍在目前 task 下方；沒有網頁上一頁時回到原排行與捲動位置。
+            returnToSalesRanking = false
+            finish()
         } else {
             if (backPressedTime + 2000 > System.currentTimeMillis()) {
                 showExitConfirmationDialog()
@@ -5511,8 +5508,30 @@ class MainActivity : LocalizedActivity() {
     }
     
     private fun setupHomeButton() {
-        btnHome.setOnClickListener {
-            loadLandingPage()
+        updateHomeButtonForNavigationContext()
+    }
+
+    private fun updateHomeButtonForNavigationContext() {
+        if (intent.getBooleanExtra(BrowserNavigator.EXTRA_RETURN_TO_SEARCH, false)) {
+            btnHome.text = "×"
+            btnHome.contentDescription = LanguageManager.text(
+                this,
+                "關閉並返回搜尋結果",
+                "Close and return to search results"
+            )
+            btnHome.setOnClickListener { finish() }
+        } else if (returnToSalesRanking) {
+            btnHome.text = "×"
+            btnHome.contentDescription = LanguageManager.text(
+                this,
+                "關閉並返回銷售排行",
+                "Close and return to sales ranking"
+            )
+            btnHome.setOnClickListener { finish() }
+        } else {
+            btnHome.text = "🏠"
+            btnHome.contentDescription = LanguageManager.text(this, "首頁", "Home")
+            btnHome.setOnClickListener { loadLandingPage() }
         }
     }
     

@@ -691,7 +691,6 @@ class VideoDownloadService : Service() {
                 try {
                     extractor.setDataSource(input.fileDescriptor)
                     val trackMap = IntArray(extractor.trackCount) { -1 }
-                    val lastPresentationUs = LongArray(extractor.trackCount) { Long.MIN_VALUE }
                     var videoTrackFound = false
                     var maxInputSize = 4 * 1024 * 1024
                     val activeMuxer = MediaMuxer(
@@ -734,13 +733,11 @@ class VideoDownloadService : Service() {
                         val sourceTrack = extractor.sampleTrackIndex
                         val destinationTrack = trackMap.getOrElse(sourceTrack) { -1 }
                         if (destinationTrack >= 0) {
-                            var presentationTimeUs = extractor.sampleTime.coerceAtLeast(0L)
-                            val previousTimeUs = lastPresentationUs[sourceTrack]
-                            if (previousTimeUs != Long.MIN_VALUE && presentationTimeUs <= previousTimeUs) {
-                                presentationTimeUs = previousTimeUs + 1L
-                            }
-                            lastPresentationUs[sourceTrack] = presentationTimeUs
-                            info.set(0, sampleSize, presentationTimeUs, extractor.sampleFlags)
+                            // Keep the source presentation timestamp. Forcing it to be strictly
+                            // increasing destroys B-frame composition timing; the old 1 us nudge
+                            // was also rounded away at the MP4 track timescale, creating many
+                            // duplicate timestamps and visible dropped frames.
+                            info.set(0, sampleSize, extractor.sampleTime, extractor.sampleFlags)
                             activeMuxer.writeSampleData(destinationTrack, buffer, info)
                             processedBytes += sampleSize
                         }
@@ -798,19 +795,28 @@ class VideoDownloadService : Service() {
     }
 
     private fun deleteDownloadUri(uri: Uri) {
-        runCatching {
+        val deleted = runCatching {
             when (uri.scheme) {
-                "file" -> uri.path?.let(::File)?.delete()
+                "file" -> uri.path?.let(::File)?.delete() == true
                 "content" -> {
-                    if (contentResolver.delete(uri, null, null) <= 0) {
-                        DocumentFile.fromSingleUri(this, uri)?.delete()
+                    val resolverDeleted = runCatching {
+                        contentResolver.delete(uri, null, null) > 0
+                    }.getOrDefault(false)
+                    if (resolverDeleted) {
+                        true
+                    } else {
+                        val document = DocumentFile.fromSingleUri(this, uri)
+                        document?.let { !it.exists() || it.delete() } == true
                     }
-                    Unit
                 }
-                else -> Unit
+                else -> false
             }
-        }.onFailure {
-            android.util.Log.w("VIDEO_DOWNLOAD_REMUX", "Unable to remove remuxed TS source", it)
+        }.getOrDefault(false)
+        if (!deleted) {
+            android.util.Log.w(
+                "VIDEO_DOWNLOAD_REMUX",
+                "Unable to remove remuxed TS source; keeping MP4 available"
+            )
         }
     }
 

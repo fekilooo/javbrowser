@@ -209,6 +209,7 @@ class SalesRankingActivity : LocalizedActivity() {
         // MainActivity 已在排行頁下方暫停；先用本機廣播讓既有 WebView 載入網址。
         val navigation = Intent(MainActivity.ACTION_LOAD_URL).apply {
             putExtra(MainActivity.EXTRA_URL, url)
+            putExtra(MainActivity.EXTRA_CLEAR_HISTORY, true)
         }
         androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this)
             .sendBroadcast(navigation)
@@ -223,6 +224,7 @@ class SalesRankingActivity : LocalizedActivity() {
         }
         launchIntent.putExtra(MainActivity.EXTRA_URL, url)
             .putExtra(MainActivity.EXTRA_RETURN_TO_SALES, true)
+            .putExtra(MainActivity.EXTRA_CLEAR_HISTORY, true)
             .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         runCatching { startActivity(launchIntent) }
             .onFailure {

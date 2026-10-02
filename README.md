@@ -8,6 +8,15 @@
 
 JAV Browser combines a site-aware WebView browser with stream detection, an internal fullscreen player, external-player handoff, direct MP4/HLS downloads, a searchable bookmark library, local-video management, and cloud-updatable ad-filter rules.
 
+## Version 1.2.0 Highlights
+
+- Consolidated duplicate download-library entries that refer to the same physical video file.
+- Preserved source presentation timestamps when remuxing downloaded video to MP4, preventing the timestamp adjustments that could cause uneven offline playback.
+- Improved video deletion for local files, document-provider storage, and Android's media library. Failed or denied deletions keep the library record available instead of silently removing it.
+- Updated search-result and sales-ranking browsing: Android Back follows page history first, then returns to the originating list when no previous page remains.
+- Added a close action to return directly to search results or sales rankings, and aligned the original search-source page with the same navigation behavior.
+- Started sales-ranking browsing with a fresh page history so Back does not navigate into unrelated earlier browser pages.
+
 ## Version 1.1.7 Highlights
 
 - Added a unified cross-site search workspace with grouped results, multi-page collection, source status reporting, saved searches, and improved Cloudflare challenge handling.
