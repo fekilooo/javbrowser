@@ -80,6 +80,19 @@ object EmbeddedSubtitles {
     }
 
     fun mux(input: FileChannel, output: WritableByteChannel, subtitles: List<Subtitle>, checkCanceled: () -> Unit = {}) {
+        try {
+            muxChecked(input, output, subtitles, checkCanceled)
+        } catch (error: AssertionError) {
+            // mp4parser also uses assertions for input/container invariants. Error
+            // is not caught by the service's Exception fallback: translate only
+            // this assertion type so failed subtitle output is deleted and the
+            // already downloaded source remains available. Never swallow VM errors.
+            throw IOException("MP4 subtitle packaging validation failed", error)
+        }
+    }
+
+    private fun muxChecked(input: FileChannel, output: WritableByteChannel,
+        subtitles: List<Subtitle>, checkCanceled: () -> Unit) {
         ensureParserConfiguration()
         val oldEditScale = misScaledVideoEditFactor(input)
         input.position(0)
@@ -119,9 +132,11 @@ object EmbeddedSubtitles {
             }
             // The stock builder writes mvhd/tkhd using the LCM of track timescales,
             // but elst using Movie.timescale (GCD). Use the same scale everywhere.
-            object : DefaultMp4Builder() {
+            val container = object : DefaultMp4Builder() {
                 override fun getTimescale(movie: Movie): Long = movie.timescale
-            }.build(movie).writeContainer(destination)
+            }.build(movie)
+            Mp4LargeFileOffsets.promote(container)
+            container.writeContainer(destination)
             checkCanceled()
             buffered.flush()
         } finally {

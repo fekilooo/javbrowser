@@ -7,6 +7,46 @@ import java.io.File
 import java.security.MessageDigest
 
 class EmbeddedSubtitlesTest {
+    @Test fun packagingAssertionBecomesRecoverableAndKeepsSourceUnchanged() {
+        val source = File.createTempFile("subtitle-assertion-source", ".mp4")
+        try {
+            javaClass.getResourceAsStream("/subtitle-base.mp4")!!.use { input -> source.outputStream().use { input.copyTo(it) } }
+            val original = source.readBytes()
+            val assertion = AssertionError("Synthetic MP4 validation failure")
+            var outputClosed = false
+            val output = object : java.nio.channels.WritableByteChannel {
+                override fun isOpen() = !outputClosed
+                override fun close() { outputClosed = true }
+                override fun write(buffer: java.nio.ByteBuffer): Int { throw assertion }
+            }
+            try {
+                source.inputStream().use { EmbeddedSubtitles.mux(it.channel, output,
+                    listOf(EmbeddedSubtitles.Subtitle("Test", "en", "WEBVTT\n\n00:00.000 --> 00:01.000\nTest\n\n"))) }
+                fail("Assertion escaped recoverable boundary")
+            } catch (error: java.io.IOException) { assertSame(assertion, error.cause) }
+            assertArrayEquals(original, source.readBytes())
+            assertFalse(outputClosed)
+        } finally { source.delete() }
+    }
+
+    @Test fun cancellationAndVmErrorsAreNotConvertedToPackagingFailures() {
+        val source = File.createTempFile("subtitle-cancel-source", ".mp4")
+        val output = File.createTempFile("subtitle-cancel-output", ".mp4")
+        try {
+            javaClass.getResourceAsStream("/subtitle-base.mp4")!!.use { input -> source.outputStream().use { input.copyTo(it) } }
+            val cancel = java.io.IOException("Synthetic cancellation")
+            val vmError = OutOfMemoryError("Synthetic VM error")
+            listOf<Throwable>(cancel, vmError).forEach { expected ->
+                try {
+                    source.inputStream().use { input -> output.outputStream().use { destination ->
+                        EmbeddedSubtitles.mux(input.channel, destination.channel,
+                            listOf(EmbeddedSubtitles.Subtitle("Test", "en", "WEBVTT\n\n00:00.000 --> 00:01.000\nTest\n\n"))) { throw expected }
+                    } }
+                    fail("Expected cancellation or VM error")
+                } catch (actual: Throwable) { assertSame(expected, actual) }
+            }
+        } finally { source.delete(); output.delete() }
+    }
     private val vtt = "WEBVTT\n\n00:00.500 --> 00:02.000\n<b>中文字幕</b> &amp; 測試\n第二行\n\n" +
         "00:01.500 --> 00:03.000\n重疊字幕\n\n"
 

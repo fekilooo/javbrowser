@@ -35,6 +35,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         private const val PREFERENCE_IMMERSIVE_MODE = "immersive_mode"
         private const val PREFERENCE_MAX_PICTURE_MODE = "max_picture_mode"
         const val EXTRA_VIDEO_URL = "video_url"
+        const val EXTRA_SEVEN_SOURCE = "seven_source"
+        const val EXTRA_SEVEN_VIDEO = "seven_video"
+        const val EXTRA_SEVEN_SERVER = "seven_server"
         const val EXTRA_REFERER = "referer"
         const val EXTRA_JAVRATE_PLAYER = "javrate_player"
         const val EXTRA_THUMB_PIC_NUM = "thumb_pic_num"
@@ -57,6 +60,9 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
     private lateinit var webView: WebView
     private var localVideoServer: LocalVideoHttpServer? = null
     private var playbackProxyServer: VideoProxyServer? = null
+    private var sevenCancellation: SearchCancellation? = null
+    private var sevenWorkers: java.util.concurrent.ExecutorService? = null
+    private var sevenReload: (() -> Unit)? = null
     private var javrateSession: JavratePlaybackSession? = null
     private var javrateLease: JavratePlaybackLease? = null
     private var subtitleTracks = "[]"
@@ -109,6 +115,12 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         )
         applyPlayerSystemUi()
 
+        if (intent.hasExtra(EXTRA_SEVEN_SOURCE)) {
+            sevenReload = { startSevenPlayback(maxPictureMode) }
+            sevenReload?.invoke()
+            return
+        }
+
         val javratePlayer = intent.getStringExtra(EXTRA_JAVRATE_PLAYER)
         if (javratePlayer != null && JavrateStreams.isPlayer(javratePlayer)) {
             val loading = android.widget.TextView(this).apply {
@@ -139,6 +151,42 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
         }
         val referer = intent.getStringExtra(EXTRA_REFERER) ?: "https://missav.ai/"
         showPlayer(videoUrl, referer, maxPictureMode)
+    }
+
+    private fun startSevenPlayback(maxPictureMode: Boolean) {
+        sevenCancellation?.cancel()
+        val cancellation = SearchCancellation().also { sevenCancellation = it }
+        val loading = android.widget.TextView(this).apply {
+            text = LanguageManager.text(this@FullscreenInternalPlayerActivity, "正在解析播放網址…", "Resolving playback…")
+            setTextColor(android.graphics.Color.WHITE); setBackgroundColor(android.graphics.Color.BLACK)
+            gravity = android.view.Gravity.CENTER
+        }
+        setContentView(loading)
+        val workers = sevenWorkers ?: java.util.concurrent.Executors.newSingleThreadExecutor().also { sevenWorkers = it }
+        workers.execute {
+            try {
+                val source = SevenSourceProtocol.source(intent.getStringExtra(EXTRA_SEVEN_SOURCE).orEmpty())
+                val detail = SevenSourceClient().detail(source, intent.getStringExtra(EXTRA_SEVEN_VIDEO).orEmpty(),
+                    intent.getStringExtra(EXTRA_SEVEN_SERVER), cancellation)
+                val media = detail.mediaUrl ?: throw java.io.IOException("未取得可播放網址，可能需要站方權限 / No playable URL; website access may be required")
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed && !cancellation.isCancelled) {
+                        intent.putExtra(EXTRA_DOWNLOAD_NAME, detail.video.title)
+                        showPlayer(media, source.origin + "/", maxPictureMode)
+                    }
+                }
+            } catch (_: InterruptedException) { }
+            catch (error: Exception) {
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed && !cancellation.isCancelled) {
+                        reportPlaybackFailure(AppTelemetry.PlaybackPhase.AUTHORIZATION)
+                        loading.text = (error.message ?: "來源無法回應 / Source unavailable") +
+                            LanguageManager.text(this, "\n點此重新解析，或返回切換線路", "\nTap to resolve again, or go back to change server")
+                        loading.setOnClickListener { sevenReload?.invoke() }
+                    }
+                }
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -289,6 +337,8 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
     }
 
     override fun onDestroy() {
+        sevenCancellation?.cancel()
+        sevenWorkers?.shutdownNow()
         javrateSession?.clearSubtitleListener()
         if (javrateLease != null) javrateLease?.release() else javrateSession?.close()
         javrateSession = null
@@ -301,6 +351,24 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
             webView.destroy()
         }
         super.onDestroy()
+    }
+
+    override fun onPause() {
+        if (sevenReload != null && ::webView.isInitialized) {
+            webView.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(v){v.pause();});", null)
+            webView.onPause()
+        }
+        super.onPause()
+    }
+
+    override fun onStop() { sevenCancellation?.cancel(); super.onStop() }
+
+    override fun onResume() {
+        super.onResume()
+        if (sevenReload != null) {
+            if (::webView.isInitialized) webView.onResume()
+            else if (sevenCancellation?.isCancelled == true) sevenReload?.invoke()
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -550,7 +618,7 @@ class FullscreenInternalPlayerActivity : LocalizedActivity() {
                 .ifEmpty { cookieManager.getCookie(referer).orEmpty() }
 
             val session = javrateSession
-            VideoProxyServer { url -> session?.authorize(url) ?: url }.also {
+            VideoProxyServer(userAgent = if (sevenReload != null) SevenSourceProtocol.USER_AGENT else PLAYER_USER_AGENT) { url -> session?.authorize(url) ?: url }.also {
                 it.start(fi.iki.elonen.NanoHTTPD.SOCKET_READ_TIMEOUT, false)
                 playbackProxyServer = it
                 if (session != null) javrateLease = JavratePlaybackLease.create(session, it)

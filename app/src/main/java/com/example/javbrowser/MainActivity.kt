@@ -221,6 +221,14 @@ class MainActivity : LocalizedActivity() {
     }
 
     private fun loadIncomingUrl(url: String, clearHistory: Boolean, source: String) {
+        SevenSourceProtocol.catalogSource(url)?.let { site ->
+            SevenSourceActivity.open(this, site)
+            return
+        }
+        SevenSourceProtocol.parseLink(url)?.let { (site, video) ->
+            SevenSourceActivity.open(this, site, video)
+            return
+        }
         val updatedUrl = domainConfig.updateUrlIfNeeded(url)
         rememberStripchatModelUrl(updatedUrl)
         android.util.Log.d("NAV_DEBUG", "loadIncomingUrl source=$source clearHistory=$clearHistory url=$updatedUrl canGoBackBefore=${webView.canGoBack()}")
@@ -384,6 +392,11 @@ class MainActivity : LocalizedActivity() {
 
     private fun handleIncomingIntent(intent: Intent?): Boolean {
         if (intent == null) return false
+        if (intent.getBooleanExtra(BrowserNavigator.EXTRA_OPEN_HOME, false)) {
+            intent.removeExtra(BrowserNavigator.EXTRA_OPEN_HOME)
+            loadLandingPage()
+            return true
+        }
         android.util.Log.d("NAV_DEBUG", "handleIncomingIntent start intentUrl=${intent.getStringExtra("url")} action=${intent.action}")
 
         var urlToLoad: String? = null
@@ -1357,6 +1370,10 @@ class MainActivity : LocalizedActivity() {
             @android.webkit.JavascriptInterface
             fun navigateToUrl(url: String) {
                 runOnUiThread {
+                    SevenSourceProtocol.parseLink(url)?.let { (source, video) ->
+                        SevenSourceActivity.open(this@MainActivity, source, video)
+                        return@runOnUiThread
+                    }
                     Toast.makeText(this@MainActivity, "Connecting...", Toast.LENGTH_SHORT).show()
                     progressBar.visibility = View.VISIBLE
                     progressBar.progress = 10
@@ -1371,6 +1388,14 @@ class MainActivity : LocalizedActivity() {
                     this@MainActivity.showHelpDialog()
                 }
             }
+
+            @android.webkit.JavascriptInterface
+            fun openSevenSource(source: String) {
+                runOnUiThread {
+                    if (SevenSourceProtocol.sources.any { it.id == source }) SevenSourceActivity.open(this@MainActivity, source)
+                }
+            }
+
             
             @android.webkit.JavascriptInterface
             fun loadLandingPage() {
@@ -1666,6 +1691,10 @@ class MainActivity : LocalizedActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
+                if (request.isForMainFrame) SevenSourceProtocol.parseLink(url)?.let { (source, video) ->
+                    SevenSourceActivity.open(this@MainActivity, source, video)
+                    return true
+                }
                 val lowerUrl = url.lowercase()
 
                 if (SupjavNavigation.blocks(currentPageUrl, url, request.isForMainFrame)) {
@@ -4290,6 +4319,11 @@ class MainActivity : LocalizedActivity() {
             withHealthyProxy { proxy ->
                 val proxyMasterUrl = proxy.buildProxyUrl(url, referer, cookies)
                 runPlaybackPreflight(url, referer, cookies, proxyMasterUrl) { ok, report ->
+                    if (!ActivityDialogGuard.canShow(this)) {
+                        btnPlay.isEnabled = true
+                        btnPlay.text = "▶"
+                        return@runPlaybackPreflight
+                    }
                     if (!ok) {
                         btnPlay.isEnabled = true
                         btnPlay.text = "▶"
@@ -4307,6 +4341,13 @@ class MainActivity : LocalizedActivity() {
                     }
 
                     VideoExtractor.fetchBestQualityUrl(proxyMasterUrl) { bestUrl ->
+                        if (!ActivityDialogGuard.canShow(this)) {
+                            if (!isFinishing && !isDestroyed) {
+                                btnPlay.isEnabled = true
+                                btnPlay.text = "▶"
+                            }
+                            return@fetchBestQualityUrl
+                        }
                         btnPlay.isEnabled = true
                         btnPlay.text = "▶"
                         // bestUrl is already a proxy URL (rewritten by proxy from the m3u8)
@@ -5804,7 +5845,9 @@ class MainActivity : LocalizedActivity() {
                 if (!failedSnippet.isNullOrBlank()) report.append(failedSnippet.take(800))
             }
 
-            runOnUiThread { callback(ok, report.toString()) }
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) callback(ok, report.toString())
+            }
         }
     }
 
@@ -5875,8 +5918,16 @@ class MainActivity : LocalizedActivity() {
         }
     }
 
+    private var playbackDebugDialog: androidx.appcompat.app.AlertDialog? = null
+
     private fun showPlaybackDebugDialog(report: String) {
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
+            runOnUiThread { showPlaybackDebugDialog(report) }
+            return
+        }
+        if (!ActivityDialogGuard.canShow(this)) return
+        playbackDebugDialog?.dismiss()
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("播放診斷")
             .setMessage(report.take(4000))
             .setPositiveButton("複製") { _, _ ->
@@ -5885,7 +5936,9 @@ class MainActivity : LocalizedActivity() {
                 Toast.makeText(this, "診斷內容已複製", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("關閉", null)
-            .show()
+            .create()
+        dialog.setOnDismissListener { if (playbackDebugDialog === dialog) playbackDebugDialog = null }
+        if (ActivityDialogGuard.tryShow(this, dialog)) playbackDebugDialog = dialog
     }
 
     private fun startVideoProxyServer(): Boolean {
@@ -6526,6 +6579,9 @@ class MainActivity : LocalizedActivity() {
                     <a href="javascript:Android.navigateToUrl('https://javday.app/')">JAVDAY</a>
                     <a href="javascript:Android.navigateToUrl('https://supjav.com/')">SUPJAV</a>
                     <a href="javascript:Android.navigateToUrl('https://www.javrate.com/')">JavRate</a>
+                    ${SevenSourceProtocol.sources.joinToString("\n") {
+                        "<a href=\"javascript:Android.openSevenSource('${it.id}')\">${it.name}</a>"
+                    }}
                     <a href="javascript:Android.navigateToUrl('https://javdb.com/')">JavDB</a>
                     <a href="javascript:Android.navigateToUrl('https://javtrailers.com/ja/videos')">JavTrailers</a>
                     <a href="javascript:Android.navigateToUrl('https://zt.stripchat.com/')">Stripchat</a>
@@ -6979,6 +7035,8 @@ class MainActivity : LocalizedActivity() {
     }
 
     override fun onDestroy() {
+        playbackDebugDialog?.dismiss()
+        playbackDebugDialog = null
         cancelPendingFileChooser()
         supjavMediaResolver.close()
         clearBlockedPopupViews()

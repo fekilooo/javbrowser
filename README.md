@@ -8,7 +8,14 @@
 
 JAV Browser combines a site-aware WebView browser with stream detection, an internal fullscreen player, external-player handoff, direct MP4/HLS downloads, a searchable bookmark library, local-video management, and cloud-updatable ad-filter rules.
 
-## Version 1.2.1
+## Version 1.2.2
+
+- Add XChina and Theporny HOME catalogs, three-column poster grids, original categories, automatic pagination and fullscreen internal playback.
+- Search both original and Simplified Chinese keywords, merge duplicate results, and reuse the browser navigation and heart bookmark action.
+- Centralize download player preferences at the top right of Downloads.
+- Fix large-file subtitle chunk offsets and guard late JavDB/playback diagnostic dialogs. A separate subtitle-parser memory-exhaustion issue remains under investigation.
+
+### Previous 1.2.1 improvements
 
 Download the latest APK from [Releases](https://github.com/fekilooo/javbrowser/releases/latest). See the [Changelog](CHANGELOG.md) for the full update notes.
 
@@ -18,6 +25,7 @@ Download the latest APK from [Releases](https://github.com/fekilooo/javbrowser/r
 
 ## Existing Features
 
+- **XChina and Theporny:** direct HOME entries open source catalogs with their original category labels, pagination, search, details, bookmarks and fresh resolution into the existing internal player. Theporny includes automatic or manual server selection. Anonymous access depends on the website's current permissions; account-only playback is not guaranteed.
 - **Visual playback history:** retain the latest 200 pages with covers, website icons, actress names when available, and playback dates. Search by title, actress, or URL; swipe left to delete. The full-width dark yellow HOME button appears below the website shortcuts.
 - **Episode playback:** choose ROU and JAVDAY episodes directly in the internal player and automatically advance to the next episode. ROU can resolve its primary video without first starting the webpage player.
 - **Clean picture:** hide player controls and overlays using the button beside Close, then tap the picture to restore them.
@@ -125,6 +133,7 @@ The download manager shows:
 - The amount of space that can be recovered by deleting the app's local videos.
 - A compact storage-usage bar that scrolls with the page rather than occupying a fixed header.
 - Open, retry, cancel, delete, record cleanup, folder selection, and local import actions.
+- A single player-settings button at the top right applies the playback preference to all videos: ask every time, use the internal player, or open other apps through Android's chooser.
 
 Only videos downloaded or explicitly imported through JAV Browser are added to its managed library. The app does not intentionally index every video on the phone.
 

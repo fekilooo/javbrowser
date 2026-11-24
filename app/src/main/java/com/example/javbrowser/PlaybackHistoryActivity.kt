@@ -153,6 +153,7 @@ class PlaybackHistoryActivity : LocalizedActivity() {
     }
 
     private fun fillMissingArtwork(entry: PlaybackHistoryEntry) {
+        if (SevenSourceProtocol.parseLink(entry.url) != null) return
         if ((entry.coverUrl != null && entry.actresses.isNotEmpty()) || !artworkAttempts.add(entry.url)) return
         val cookies = CookieManager.getInstance().getCookie(entry.url).orEmpty()
         artworkExecutor.execute {

@@ -17,6 +17,25 @@ object LocalVideoPlayback {
     private const val DOWNLOAD_PREFS = "download_playback"
     private const val PLAYER_CHOICE = "player_choice"
 
+    fun showPlayerSettings(activity: Activity) {
+        val prefs = activity.getSharedPreferences(DOWNLOAD_PREFS, Activity.MODE_PRIVATE)
+        val choices = listOf(DownloadPlayerChoice.ASK, DownloadPlayerChoice.INTERNAL, DownloadPlayerChoice.EXTERNAL)
+        val labels = arrayOf(
+            LanguageManager.text(activity, "每次詢問", "Ask every time"),
+            LanguageManager.text(activity, "內建播放器", "Internal player"),
+            LanguageManager.text(activity, "其他 App（系統選擇器）", "Other apps (system chooser)")
+        )
+        var selected = choices.indexOf(DownloadPlayerChoice.fromStored(prefs.getString(PLAYER_CHOICE, null)))
+        AlertDialog.Builder(activity)
+            .setTitle(LanguageManager.text(activity, "播放器設定（套用全部影片）", "Player settings (all videos)"))
+            .setSingleChoiceItems(labels, selected) { _, index -> selected = index }
+            .setPositiveButton(LanguageManager.text(activity, "儲存", "Save")) { _, _ ->
+                prefs.edit().putString(PLAYER_CHOICE, choices[selected].name).apply()
+            }
+            .setNegativeButton(LanguageManager.text(activity, "取消", "Cancel"), null)
+            .show()
+    }
+
     fun openDownload(activity: Activity, uri: Uri, title: String, chooseAgain: Boolean = false) {
         if (uri.scheme !in setOf("content", "file")) {
             Toast.makeText(activity, LanguageManager.text(activity, "無法讀取本機影片網址", "Invalid local video address"), Toast.LENGTH_LONG).show()
@@ -51,8 +70,8 @@ object LocalVideoPlayback {
                     addView(remember)
                     addView(TextView(activity).apply {
                         text = LanguageManager.text(activity,
-                            "內建播放器若不支援影片格式，可返回改用其他 App。之後可按播放旁的圖示重新選擇。",
-                            "If the internal player cannot play this format, go back and choose another app. Use the icon beside Play to choose again.")
+                            "內建播放器若不支援影片格式，可在下載頁右上角的播放器設定改用其他 App。",
+                            "If the internal player cannot play this format, choose another app in Player settings at the top right of Downloads.")
                         textSize = 12f
                         setPadding(0, padding / 2, 0, 0)
                     })

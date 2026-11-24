@@ -25,7 +25,8 @@ import java.util.zip.InflaterInputStream
  *   val localUrl = proxy.buildProxyUrl(realVideoUrl, referer, cookies)
  *   // 將 localUrl 傳給外部播放器
  */
-class VideoProxyServer(private val authorizeUrl: (String) -> String = { it }) : NanoHTTPD(0) { // port=0 讓系統自動選空閒 port
+class VideoProxyServer(private val userAgent: String = USER_AGENT,
+    private val authorizeUrl: (String) -> String = { it }) : NanoHTTPD("127.0.0.1", 0) {
 
     companion object {
         private const val CONNECT_TIMEOUT = 15000
@@ -124,7 +125,7 @@ class VideoProxyServer(private val authorizeUrl: (String) -> String = { it }) : 
 
             val outboundCookies = mergeCookiesForUrl(realUrl, referer, cookies)
 
-            connection.setRequestProperty("User-Agent", USER_AGENT)
+            connection.setRequestProperty("User-Agent", userAgent)
             if (referer.isNotEmpty()) connection.setRequestProperty("Referer", referer)
             if (outboundCookies.isNotEmpty()) connection.setRequestProperty("Cookie", outboundCookies)
             connection.setRequestProperty("Accept", "*/*")

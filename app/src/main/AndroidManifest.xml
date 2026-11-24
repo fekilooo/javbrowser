@@ -166,6 +166,7 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
         <activity android:name=".SettingsActivity" />
+        <activity android:name=".SevenSourceActivity" android:exported="false" />
         <activity
             android:name=".DownloadsActivity"
             android:exported="true"

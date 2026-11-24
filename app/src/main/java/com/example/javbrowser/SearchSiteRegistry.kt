@@ -4,6 +4,7 @@ import android.content.Context
 import java.net.URLEncoder
 
 enum class SearchParserKind {
+    SEVEN_SOURCE,
     JABLE,
     PIGAV,
     AVTODAY,
@@ -97,7 +98,11 @@ object SearchSiteRegistry {
                 "supjav:supjav.com", { query, page -> page ?: "https://supjav.com/?s=${encodedQuery(query)}" }, setOf("supjav.com")),
             SearchSite(SearchSiteIds.JAVRATE, "JavRate", 11, SearchParserKind.JAVRATE,
                 "javrate:javrate.com", { query, page -> page ?: "https://www.javrate.com/search/a%E7%89%87/${pathQuery(query.lowercase(java.util.Locale.ROOT))}/?tab=movie" }, setOf("javrate.com"))
-        ) + rouSites(domain.getRouVideoDomain(), LanguageManager.isEnglish(context))
+        ) + rouSites(domain.getRouVideoDomain(), LanguageManager.isEnglish(context)) +
+            SevenSourceProtocol.sources.mapIndexed { index, source ->
+                SearchSite(source.id, source.name, 14 + index, SearchParserKind.SEVEN_SOURCE, "${source.id}:v1",
+                    { query, page -> page ?: "${source.origin}/?keywords=${encodedQuery(query)}" }, setOf(source.domain))
+            }
     }
 
     fun rouSites(host: String, english: Boolean = false): List<SearchSite> = listOf(false, true).map { series ->

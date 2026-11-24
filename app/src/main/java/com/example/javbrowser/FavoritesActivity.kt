@@ -38,6 +38,8 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class FavoritesActivity : LocalizedActivity() {
+    private var javDbManualDialog: android.app.Dialog? = null
+    private var javDbManualCleanup: (() -> Unit)? = null
 
     private data class SourceFilter(
         val key: String,
@@ -257,6 +259,10 @@ class FavoritesActivity : LocalizedActivity() {
     }
 
     override fun onDestroy() {
+        javDbManualDialog?.dismiss()
+        javDbManualCleanup?.invoke()
+        javDbManualDialog = null
+        javDbManualCleanup = null
         localScanExecutor.shutdownNow()
         stripchatThumbnailHandler.removeCallbacks(stripchatThumbnailRefreshRunnable)
         stripchatStatusGeneration.incrementAndGet()
@@ -3088,12 +3094,30 @@ class FavoritesActivity : LocalizedActivity() {
         javCode: String,
         replaceCover: Boolean = false
     ) {
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
+            runOnUiThread { showJavDbManualWebViewDialog(item, javCode, replaceCover) }
+            return
+        }
+        if (!ActivityDialogGuard.canShow(this)) return
+        javDbManualDialog?.dismiss()
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val dialog  = android.app.Dialog(this)
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
 
         // ── WebView（儘量擬真 Chrome，提高 CF 通過率）──
         val webView = android.webkit.WebView(this)
+        var closed = false
+        fun active() = !closed && !isFinishing && !isDestroyed && dialog.isShowing
+        fun cleanup() {
+            if (closed) return
+            closed = true
+            handler.removeCallbacksAndMessages(null)
+            webView.stopLoading()
+            webView.webViewClient = android.webkit.WebViewClient()
+            webView.webChromeClient = null
+            (webView.parent as? ViewGroup)?.removeView(webView)
+            webView.destroy()
+        }
         webView.settings.apply {
             javaScriptEnabled        = true
             domStorageEnabled        = true
@@ -3148,7 +3172,7 @@ class FavoritesActivity : LocalizedActivity() {
             textSize = 12f
             setPadding((dp * 16).toInt(), 0, (dp * 16).toInt(), 0)
             setOnClickListener {
-                webView.stopLoading(); webView.destroy(); dialog.dismiss()
+                dialog.dismiss()
             }
         }
         val bottomBar = LinearLayout(this).apply {
@@ -3173,13 +3197,14 @@ class FavoritesActivity : LocalizedActivity() {
         }
 
         fun evalAfterDelay(view: android.webkit.WebView, delayMs: Long, block: (android.webkit.WebView) -> Unit) {
-            handler.postDelayed({ if (dialog.isShowing) block(view) }, delayMs)
+            handler.postDelayed({ if (active()) block(view) }, delayMs)
         }
 
         webView.webViewClient = object : android.webkit.WebViewClient() {
 
             // 在頁面 JS 執行前注入，掩蓋 WebView 特徵，提高 CF 通過率
             override fun onPageStarted(view: android.webkit.WebView, url: String, favicon: android.graphics.Bitmap?) {
+                if (!active()) return
                 view.evaluateJavascript("""
                     (function(){
                         try { Object.defineProperty(navigator,'webdriver',{get:()=>undefined}); } catch(e){}
@@ -3217,7 +3242,7 @@ class FavoritesActivity : LocalizedActivity() {
                         })()
                     """.trimIndent()
                     wv.evaluateJavascript(detectJs) { raw ->
-                        if (!dialog.isShowing) return@evaluateJavascript
+                        if (!active()) return@evaluateJavascript
                         var pageTitle = ""
                         var pageBody  = ""
                         try {
@@ -3270,6 +3295,7 @@ class FavoritesActivity : LocalizedActivity() {
                                     })()
                                 """.trimIndent()
                                 wv.evaluateJavascript(js) { href ->
+                                    if (!active()) return@evaluateJavascript
                                     if (href == null || href == "null") {
                                         tvStatus.text = "❌ 找不到番號「$javCode」的資料"
                                         return@evaluateJavascript
@@ -3297,6 +3323,7 @@ class FavoritesActivity : LocalizedActivity() {
                                     })()
                                 """.trimIndent()
                                 wv.evaluateJavascript(js) { result ->
+                                    if (!active()) return@evaluateJavascript
                                     if (result == null || result == "null") {
                                         tvStatus.text = "❌ 資料解析失敗，請重試"; return@evaluateJavascript
                                     }
@@ -3327,9 +3354,7 @@ class FavoritesActivity : LocalizedActivity() {
                                         favoritesManager.updateFavoriteDetail(item.url, detail)
                                         tvStatus.text = "✅ 查詢成功，即將關閉..."
                                         handler.postDelayed({
-                                            webView.stopLoading(); webView.destroy(); dialog.dismiss()
-                                            LocalBroadcastManager.getInstance(this@FavoritesActivity)
-                                                .sendBroadcast(Intent(ACTION_FAVORITE_ENRICHED))
+                                            if (active()) dialog.dismiss()
                                         }, 900)
                                     } catch (e: Exception) {
                                         tvStatus.text = "❌ 解析錯誤：${e.message}"
@@ -3342,8 +3367,21 @@ class FavoritesActivity : LocalizedActivity() {
             }
         }
 
-        dialog.setOnDismissListener { if (step != "done") { webView.stopLoading(); webView.destroy() } }
-        dialog.show()
+        dialog.setOnDismissListener {
+            cleanup()
+            if (javDbManualDialog === dialog) {
+                javDbManualDialog = null
+                javDbManualCleanup = null
+            }
+            if (step == "done") LocalBroadcastManager.getInstance(applicationContext)
+                .sendBroadcast(Intent(ACTION_FAVORITE_ENRICHED))
+        }
+        if (!ActivityDialogGuard.tryShow(this, dialog)) {
+            cleanup()
+            return
+        }
+        javDbManualDialog = dialog
+        javDbManualCleanup = ::cleanup
         webView.loadUrl(searchUrl)
     }
 }
