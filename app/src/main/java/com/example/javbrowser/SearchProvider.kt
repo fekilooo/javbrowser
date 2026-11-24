@@ -235,7 +235,6 @@ class SearchHtmlParser(private val site: SearchSite, private val rules: SearchPa
 object SearchProviderFactory {
     fun create(context: Context): Map<String, SearchProvider> = SearchSiteRegistry.sites(context).associate { site ->
         site.id to when (site.parserKind) {
-            SearchParserKind.SEVEN_SOURCE -> SevenSourceSearchProvider(context, site)
             SearchParserKind.MISSAV -> MissavSearchProvider(context, site)
             SearchParserKind.JABLE -> JableSearchProvider(context, site)
             SearchParserKind.AVJOY -> AvjoySearchProvider(context, site)

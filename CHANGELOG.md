@@ -4,14 +4,7 @@
 
 - Fix subtitle muxing for MP4 files whose media chunk offsets exceed the unsigned 32-bit limit: promote chunk-offset tables to co64 and compensate all tracks for the enlarged movie header. Convert remaining mux assertion failures into recoverable packaging errors so the existing download path retains the source video.
 - Guard JavDB manual-completion and playback-diagnostic dialogs against inactive, finishing, destroyed or detached Activity windows. Handle token invalidation at show time, discard late playback UI actions and centralize JavDB WebView/timer cleanup on dismiss/destroy.
-- Search XChina/Theporny with both the original Traditional Chinese keyword and its Simplified Chinese conversion, merging by source/video identity on each page. Keep English/codes unchanged, avoid identical duplicate queries, and retry failed variants without skipping pages. Bundle attributed OpenCC character/phrase dictionaries for offline conversion.
-- Reuse the browser's shared HOME/heart/bookmarks/downloads/play/settings navigation in both source catalogs and details. Use its heart for bookmark toggling and remove card-corner menus, the duplicate detail bookmark button and the detail More options action.
-- Share the unified-search input layout with both source catalogs, including its white text, gray hint and purple input/button styling.
-- Automatically load the next XChina/Theporny catalog page when scrolling within two rows of the bottom. Retain scroll position, prevent concurrent duplicate page requests, stop on empty/repeated pages, and offer an explicit retry after failures.
-- Present the XChina and Theporny catalogs as three-column poster grids with rounded portrait covers, two-line titles and source labels. Detail pages place a 16:9 poster/play preview above the description and footer actions; pressing Play opens the existing fullscreen internal player.
-- Add XChina and Theporny directly to HOME, with their original category IDs exposed as horizontally scrollable labels inside each source (21 and 14 categories respectively). No source-management step or enable switch is required.
-- Add encrypted API decoding, catalog pagination, source search and unified search, detail pages, Theporny server selection, bookmarks, and history reopening through fresh internal-player resolution. Do not bundle upstream account credentials.
-- Keep media proxy traffic on loopback and apply each source's playback Referer and User-Agent. Pause new-source playback when leaving its Activity and release its proxy on close.
+- Bind the media proxy to loopback.
 - Move download playback preferences to a single player-settings button at the top right of Downloads. Apply Ask every time, Internal player, or Other apps to all video rows, retain existing preferences, and remove the repeated player-choice button beside each Play action.
 
 ## 1.2.1 - 2026-10-30

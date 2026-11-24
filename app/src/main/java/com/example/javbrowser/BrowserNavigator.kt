@@ -7,26 +7,10 @@ import android.widget.Toast
 
 /** 統一從結果頁回到可切換圖示的主瀏覽器入口。 */
 object BrowserNavigator {
-    const val EXTRA_OPEN_HOME = "open_browser_home"
-    fun openHome(context: Context) {
-        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        intent.putExtra(EXTRA_OPEN_HOME, true)
-        if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-    }
     const val EXTRA_RETURN_TO_SEARCH = "return_to_unified_search"
     const val EXTRA_RETURN_TO_HISTORY = "return_to_playback_history"
     fun open(context: Context, url: String, returnToHistory: Boolean = false): Boolean {
         val cleanUrl = url.trim()
-        SevenSourceProtocol.parseLink(cleanUrl)?.let { (source, video) ->
-            SevenSourceActivity.open(context, source, video)
-            return true
-        }
-        SevenSourceProtocol.catalogSource(cleanUrl)?.let { source ->
-            SevenSourceActivity.open(context, source)
-            return true
-        }
         if (!cleanUrl.startsWith("http://", true) && !cleanUrl.startsWith("https://", true)) {
             Toast.makeText(context, "結果網址無效", Toast.LENGTH_SHORT).show()
             return false

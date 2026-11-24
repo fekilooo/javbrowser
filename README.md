@@ -10,8 +10,6 @@ JAV Browser combines a site-aware WebView browser with stream detection, an inte
 
 ## Version 1.2.2
 
-- Add XChina and Theporny HOME catalogs, three-column poster grids, original categories, automatic pagination and fullscreen internal playback.
-- Search both original and Simplified Chinese keywords, merge duplicate results, and reuse the browser navigation and heart bookmark action.
 - Centralize download player preferences at the top right of Downloads.
 - Fix large-file subtitle chunk offsets and guard late JavDB/playback diagnostic dialogs. A separate subtitle-parser memory-exhaustion issue remains under investigation.
 
@@ -25,7 +23,6 @@ Download the latest APK from [Releases](https://github.com/fekilooo/javbrowser/r
 
 ## Existing Features
 
-- **XChina and Theporny:** direct HOME entries open source catalogs with their original category labels, pagination, search, details, bookmarks and fresh resolution into the existing internal player. Theporny includes automatic or manual server selection. Anonymous access depends on the website's current permissions; account-only playback is not guaranteed.
 - **Visual playback history:** retain the latest 200 pages with covers, website icons, actress names when available, and playback dates. Search by title, actress, or URL; swipe left to delete. The full-width dark yellow HOME button appears below the website shortcuts.
 - **Episode playback:** choose ROU and JAVDAY episodes directly in the internal player and automatically advance to the next episode. ROU can resolve its primary video without first starting the webpage player.
 - **Clean picture:** hide player controls and overlays using the button beside Close, then tap the picture to restore them.
